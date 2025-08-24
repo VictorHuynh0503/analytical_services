@@ -134,6 +134,60 @@ away_stats = match_stats(df_stats, team_away, last_n=5)
 print(home_stats)
 print(away_stats)
 
+
+from hook.telegram_v2 import send_telegram_message
+
+token="1200942736:AAEG8y9qyJ7aHefUm4vt_xKqkNBxfKd3qCc"
+chat_id = "@vihuynh_alert"
+
+##### DF_UNDER
+df_tele = df_alerts_hc[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+       'current_time', 'run_time', 'match_part', 'time_difference',
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 
+       'total_for_fromscore_handicap', 'success_rate_frommscore']]
+
+chunk_size = 10
+df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
+
+for i in range(0, len(df_list)):
+    item_tele = df_list[i]
+    
+    if item_tele.empty:
+        print("There's nothing to alert")
+    # for i in industry:
+    #     print("Nganh: ", i)
+    #     df_tele_f = df_tele.loc[df_tele['industry']==i]
+    #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
+    #     df_tele_f = df_tele_f.head(5)
+        pass
+    else:
+        send_telegram_message(item_tele, token, chat_id)
+
+
+##### DF_UNDER
+df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+       'current_time', 'run_time', 'match_part', 'time_difference',
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 
+       'total_for_fromscore_line', 'success_rate_fromscore']]
+
+chunk_size = 10
+df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
+
+for i in range(0, len(df_list)):
+    item_tele = df_list[i]
+    
+    if item_tele.empty:
+        print("There's nothing to alert")
+    # for i in industry:
+    #     print("Nganh: ", i)
+    #     df_tele_f = df_tele.loc[df_tele['industry']==i]
+    #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
+    #     df_tele_f = df_tele_f.head(5)
+        pass
+    else:
+        send_telegram_message(item_tele, token, chat_id)
+
+
 # df_join_hc = df_parsed.merge(
 #     df_stats_hc,
 #     how="left",
