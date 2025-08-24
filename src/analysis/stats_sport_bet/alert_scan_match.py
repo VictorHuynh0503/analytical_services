@@ -5,7 +5,11 @@ import re
 import sys
 import os
 
-sys_path = "D:/Projects/analytical_services/"
+from dotenv import load_dotenv
+load_dotenv()  # This loads variables from .env into environment
+
+sys_path = os.getenv("sys_path")
+print(sys_path)
 os.chdir(sys_path)
 sys.path.append(sys_path)
 
