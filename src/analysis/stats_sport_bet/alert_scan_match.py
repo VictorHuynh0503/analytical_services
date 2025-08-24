@@ -143,7 +143,7 @@ chat_id = "@vihuynh_alert"
 ##### DF_UNDER
 df_tele = df_alerts_hc[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
        'total_for_fromscore_handicap', 'success_rate_frommscore']]
 
 chunk_size = 10
@@ -167,7 +167,7 @@ for i in range(0, len(df_list)):
 ##### DF_UNDER
 df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
        'total_for_fromscore_line', 'success_rate_fromscore']]
 
 chunk_size = 10
