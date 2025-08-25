@@ -116,12 +116,12 @@ class DowTheoryAnalyzer:
         self.data['Phase'] = phases
         return phases
     
-    def plot_analysis(self, figsize=(15, 12)):
+    def plot_analysis(self, name= "BTC/USD", figsize=(15, 12)):
         """
         Create comprehensive visualization of the analysis
         """
         fig, axes = plt.subplots(4, 1, figsize=figsize, height_ratios=[3, 1, 1, 1])
-        fig.suptitle('Dow Theory Market Phase Analysis - BTC/USD', fontsize=16, fontweight='bold')
+        fig.suptitle(f'Dow Theory Market Phase Analysis - {name}', fontsize=16, fontweight='bold')
         
         # Color mapping for phases
         phase_colors = {
