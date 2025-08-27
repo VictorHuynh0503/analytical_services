@@ -46,6 +46,25 @@ df['priceChangePercent'] = df['priceChangePercent'].astype('float').apply(lambda
 df['openTime'] = pd.to_datetime(df['openTime'], unit='ms')
 df['closeTime'] = pd.to_datetime(df['closeTime'], unit='ms')
 
+def categorize_change(pct):
+    if pct >= 0.05:
+        return "Strong Gain"
+    elif 0.02 <= pct < 0.05:
+        return "Gain"
+    elif 0.01 <= pct < 0.02:
+        return "Moderate Gain"
+    elif -0.01 < pct < 0.01:
+        return "Stable"
+    elif -0.02 <= pct <= -0.01:
+        return "Moderate Loss"
+    elif -0.05 <= pct < -0.02:
+        return "Loss"
+    else:
+        return "Strong Loss"
+
+# Apply to your dataframe
+df["priceCategory"] = df["priceChangePercent"].apply(categorize_change)
+
 
 from storage import duckdb_logger as dl 
 

@@ -54,12 +54,16 @@ list_of_industry = ['personal__household_goods', 'chemicals', 'food__beverage',
 
 
 df_bank = df_final[df_final['industry'].str.contains('banks', na=False)]
+df_ins = df_final[df_final['industry'].str.contains('industrial_goods__services', na=False)]
+
+df_selected = df_final[df_final['industry'].str.contains('construction__materials', na=False)]
+
 
 from src.analysis.technical_analysis.dow_simple import DowTheoryAnalyzer
 
-for i in df_bank['Ticker'].unique():
+for i in df_selected['Ticker'].unique()[0:10]:
     print(f"\nAnalyzing {i}...")
-    df = df_bank[df_bank['Ticker'] == i].copy()
+    df = df_selected[df_selected['Ticker'] == i].copy()
     print(df.shape)
     
     df =df['Date,Open,High,Low,Close,Volume'.split(',')]

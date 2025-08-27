@@ -74,13 +74,13 @@ df_join_hc = df_parsed.merge(
 hc_condition = (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
     (df_join_hc['total_for_fromscore_handicap'] <= 50) &
-    (df_join_hc['success_rate_frommscore'] > 0.75)
+    (df_join_hc['success_rate_frommscore'] > 0.85)
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 50) & 
-    (df_join_hc['success_rate_frommscore'] >= 0.65)    
+    (df_join_hc['success_rate_frommscore'] >= 0.75)    
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['success_rate_frommscore'] >= 0.55)  &
+    (df_join_hc['success_rate_frommscore'] >= 0.75)  &
     (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
     (df_join_hc['hh_value'].astype(float) <= -0.25)  & (df_join_hc['hh_value'].astype(float) >= -0.5)    
 )
@@ -101,10 +101,10 @@ df_join_ou = df_parsed.merge(
 ou_condition = (
     (df_join_ou['total_for_fromscore_line'] >= 10) & 
     (df_join_ou['total_for_fromscore_line'] <= 50) &
-    (df_join_ou['success_rate_fromscore'] > 0.8)
+    (df_join_ou['success_rate_fromscore'] > 0.85)
 ) | (
     (df_join_ou['total_for_fromscore_line'] >= 50) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.65)
+    (df_join_ou['success_rate_fromscore'] >= 0.75)
 )
 
 df_alerts_ou = df_join_ou[ou_condition]

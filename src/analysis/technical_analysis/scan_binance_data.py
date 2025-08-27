@@ -24,7 +24,11 @@ from storage import duckdb_reader as dr
 
 df = dr.read_from_duckdb(
 db_path=f"{log_data_path}/binance_ohlc.duckdb",
-query = "SELECT * FROM binance_ohlc "
+query = """
+SELECT * FROM binance_ohlc
+WHERE timeframe = '1d' AND "open time" >= '2024-01-01' 
+AND run_time = (SELECT MAX(run_time) FROM binance_ohlc)
+"""
 )
 
 

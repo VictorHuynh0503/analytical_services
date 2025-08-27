@@ -62,7 +62,6 @@ def extract_ohlc_data(klines_data):
         })
     return ohlc_data
 
-
 def get_ticker_coin():
     url = "https://www.binance.com/fapi/v1/ticker/24hr"
     response = requests.get(url)
@@ -74,8 +73,21 @@ def get_ticker_coin():
     list_symbol = df['symbol'].unique()
     return list_symbol
 
+log_data_path = os.getenv("log_data_path")
 
-list_symbol = get_ticker_coin()
+from storage import duckdb_reader as dr 
+
+df = dr.read_from_duckdb(
+db_path=f"{log_data_path}/binance_24h.duckdb",
+query = "SELECT * FROM binance_24h WHERE priceCategory IN ('Strong Gain')"
+#'Stable','Moderate Gain', 'Strong Gain',
+)
+
+selected_list = df['symbol'].unique().tolist()
+
+full_list = get_ticker_coin()
+
+list_symbol = list(set(selected_list) & set(full_list))
 
 empty_df = pd.DataFrame()
 
@@ -122,6 +134,5 @@ dl.log_to_duckdb(
     table_name="binance_ohlc",
     schema=table_schema,
     data=list_data,
-    mode="upsert",
-    upsert_keys=["ticker", "open time", "timeframe", "run_time"]
+    mode="append"
 )
