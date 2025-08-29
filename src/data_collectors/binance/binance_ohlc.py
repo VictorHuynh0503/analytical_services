@@ -79,11 +79,16 @@ from storage import duckdb_reader as dr
 
 df = dr.read_from_duckdb(
 db_path=f"{log_data_path}/binance_24h.duckdb",
-query = "SELECT * FROM binance_24h WHERE priceCategory IN ('Strong Gain')"
+query = "SELECT * FROM binance_24h WHERE priceCategory IN ('Moderate Gain', 'Strong Gain')"
 #'Stable','Moderate Gain', 'Strong Gain',
 )
 
-selected_list = df['symbol'].unique().tolist()
+from src.data_collectors.binance.cryto_segment import generate_ticker_symbol
+
+
+selected_df = generate_ticker_symbol()
+selected_list = selected_df['symbol'].unique().tolist()
+# selected_list = df['symbol'].unique().tolist()
 
 full_list = get_ticker_coin()
 
@@ -92,7 +97,7 @@ list_symbol = list(set(selected_list) & set(full_list))
 empty_df = pd.DataFrame()
 
 i = 0
-for symbol in list_symbol[0:10]:
+for symbol in list_symbol[0:100]:
     print(f"Symbol is {symbol}")
     i += 1
     print("This is the ticker number: ", i)
