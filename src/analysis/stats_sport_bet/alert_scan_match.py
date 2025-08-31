@@ -157,9 +157,6 @@ for i in all_team:
     # print(f"Results is {stats}")
     data_match_stats.append(stats)
 
-    # extract_goals = extract_goal_events_with_preodds(df_to_stats, i)
-    # data_extract_goal_events.append(extract_goals)
-
 df1 = pd.DataFrame(data_match_stats)
 
 df_alerts_hc = df_alerts_hc.merge(df1, left_on='home_name', right_on='team')
@@ -167,6 +164,35 @@ df_alerts_hc = df_alerts_hc.merge(df1, left_on='away_name', right_on='team', suf
 
 df_alerts_ou = df_alerts_ou.merge(df1, left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, left_on='away_name', right_on='team', suffixes=("_home", "_away"))
+
+sql_realtime = """
+   WITH ranked AS (
+    SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY id ORDER BY run_time DESC) AS rn,
+            now()::timestamp as current_now
+    FROM "188bet_log"
+    WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '1.5 hours'
+         AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
+    )
+    SELECT *
+    FROM ranked;
+"""
+
+resp = requests.post("http://165.232.188.235:8000/query/log",
+                    json={"sql": f"{sql_realtime}"})
+data = resp.json()
+df_realtime = pd.DataFrame(data["rows"], columns=data["columns"])
+
+realtime_match = pd.DataFrame()
+
+for i in df_stats['match_name'].tolist():
+    # print(i)
+    extract_goals = extract_goal_events_with_preodds(df_realtime, i)
+    realtime_match = pd.concat([extract_goals, realtime_match], axis=0, ignore_index=True)
+
+
+df_to_inform_realtime = realtime_match.merge(df_alerts_ou, left_on='match_name', right_on='match_name')
+
 
 from hook.telegram_v2 import send_telegram_message
 
@@ -227,6 +253,34 @@ for i in range(0, len(df_list)):
         pass
     else:
         send_telegram_message(item_tele, token, chat_id)
+
+
+
+################### Realtime Match Analysis #################
+
+##### DF_UNDER
+df_tele = df_to_inform_realtime[['match_name', 'new_score', 'goal_time', 'new_over_under',
+       'new_handicap', 'pre_score', 'pre_time', 'pre_over_under',
+       'pre_handicap']]
+
+
+chunk_size = 10
+df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
+
+for i in range(0, len(df_list)):
+    item_tele = df_list[i]
+    
+    if item_tele.empty:
+        print("There's nothing to alert")
+    # for i in industry:
+    #     print("Nganh: ", i)
+    #     df_tele_f = df_tele.loc[df_tele['industry']==i]
+    #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
+    #     df_tele_f = df_tele_f.head(5)
+        pass
+    else:
+        send_telegram_message(item_tele, token, chat_id)
+
 
 
 # df_join_hc = df_parsed.merge(
