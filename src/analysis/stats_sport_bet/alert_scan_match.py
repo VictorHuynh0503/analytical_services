@@ -49,6 +49,8 @@ resp = requests.post("http://165.232.188.235:8000/query/log",
 data = resp.json()
 df = pd.DataFrame(data["rows"], columns=data["columns"])
 df_parsed = parse_odds_columns(df)
+df_parsed['home_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[0])
+df_parsed['away_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[1])
 
 from dotenv import load_dotenv
 import os
@@ -74,18 +76,18 @@ df_join_hc = df_parsed.merge(
 hc_condition = (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
     (df_join_hc['total_for_fromscore_handicap'] <= 50) &
-    (df_join_hc['success_rate_frommscore'] > 0.85)
+    (df_join_hc['success_rate_fromscore'] > 0.85)
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 50) & 
-    (df_join_hc['success_rate_frommscore'] >= 0.75)    
+    (df_join_hc['success_rate_fromscore'] >= 0.75)    
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['success_rate_frommscore'] >= 0.75)  &
+    (df_join_hc['success_rate_fromscore'] >= 0.75)  &
     (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
     (df_join_hc['hh_value'].astype(float) <= -0.25)  & (df_join_hc['hh_value'].astype(float) >= -0.5)    
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['success_rate_frommscore'] >= 0.6)  &
+    (df_join_hc['success_rate_fromscore'] >= 0.4)  &
     (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
     (df_join_hc['score'].isin(['3-0', '0-3', '4-1', '4-1', '3-1', '1-3'])) & 
     (df_join_hc['hh_value'].isin(['0.25', '-0.25', '0.5', '-0.5']))  
@@ -112,50 +114,59 @@ ou_condition = (
     (df_join_ou['total_for_fromscore_line'] >= 50) & 
     (df_join_ou['success_rate_fromscore'] >= 0.75)
 ) | (
-    (df_join_ou['total_for_fromscore_line'] >= 10) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.6) &
-    (df_join_ou['score'].isin(['1-0', '0-1'])) & 
-    (df_join_ou['line_value'].isin(['1.5', '1.75'])) & 
+    (df_join_ou['total_for_fromscore_line'] >= 20) & 
+    (df_join_ou['success_rate_fromscore'] >= 0.4) &
+    (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) & 
+    (df_join_ou['line_value'].isin(['1.5', '1.75', '3.5', '3.75'])) & 
     (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.5', '0.5'])) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
-)
+) 
+# | (
+#     (df_join_ou['score'].isin(['0-0','1-0', '0-1', '2-1', '1-2'])) 
+# )
+
 
 df_alerts_ou = df_join_ou[ou_condition]
 print("################### OVER/UNDER ALERTS ###################")
 print(df_alerts_ou)
 
 
-sql_stats =  """
+df_stats = df_parsed
+
+all_team = df_stats['home_name'].tolist() + df_stats['away_name'].tolist()
+
+sql_stats =  f"""
 SELECT * FROM "188bet_log" 
-WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '5000 hours'
+WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '3000 hours'
 AND "run_time"::TIMESTAMP <= (NOW()::timestamp - INTERVAL '7 hours')
+AND (split_part(match_name, '-', 1) IN {all_team} OR split_part(match_name, '-', 2) IN {all_team})
 """
 
-    # resp = requests.post("http://165.232.188.235:8000/query/log",
-    #                     json={"sql": f"{sql}"})
-    # ##print(resp.json())
+resp = requests.post("http://165.232.188.235:8000/query/log",
+                    json={"sql": f"{sql_stats}"})
+data = resp.json()
+df_to_stats = pd.DataFrame(data["rows"], columns=data["columns"])
 
-    # data = resp.json()
 
-    # df = pd.DataFrame(data["rows"], columns=data["columns"])
-    
-   
-from storage import duckdb_reader as dr 
+data_match_stats = []
+# data_extract_goal_events = []
 
-df_stats = dr.read_from_duckdb(
-db_path="log_data/188bet_log.duckdb",
-query = sql_stats
-)
+for i in all_team:
+    print(f"\nAnalyzing {i}...")
+    stats = match_stats(df_to_stats, i, last_n=5)
+    # print(f"Results is {stats}")
+    data_match_stats.append(stats)
 
-team_home = "Lorient"
-team_away = "Rennes"
+    # extract_goals = extract_goal_events_with_preodds(df_to_stats, i)
+    # data_extract_goal_events.append(extract_goals)
 
-home_stats = match_stats(df_stats, team_home, last_n=5)
-away_stats = match_stats(df_stats, team_away, last_n=5)
+df1 = pd.DataFrame(data_match_stats)
 
-print(home_stats)
-print(away_stats)
+df_alerts_hc = df_alerts_hc.merge(df1, left_on='home_name', right_on='team')
+df_alerts_hc = df_alerts_hc.merge(df1, left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
+df_alerts_ou = df_alerts_ou.merge(df1, left_on='home_name', right_on='team')
+df_alerts_ou = df_alerts_ou.merge(df1, left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
 from hook.telegram_v2 import send_telegram_message
 
@@ -166,7 +177,11 @@ chat_id = "@vihuynh_alert"
 df_tele = df_alerts_hc[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
        'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
-       'total_for_fromscore_handicap', 'success_rate_frommscore']]
+       'total_for_fromscore_handicap', 'success_rate_fromscore', 
+       'matches_analyzed_home', 
+       'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
+       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
+       ]]
 
 chunk_size = 10
 df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
@@ -190,7 +205,11 @@ for i in range(0, len(df_list)):
 df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
        'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
-       'total_for_fromscore_line', 'success_rate_fromscore']]
+       'total_for_fromscore_line', 'success_rate_fromscore',
+       'matches_analyzed_home', 
+       'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
+       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
+       ]]
 
 chunk_size = 10
 df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]

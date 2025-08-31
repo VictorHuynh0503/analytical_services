@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     sql =     """
         SELECT * FROM "188bet_log" 
-        WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '5000 hours'
+        WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '10000 hours'
         AND "run_time"::TIMESTAMP <= (NOW()::timestamp - INTERVAL '7 hours')
         """
 
