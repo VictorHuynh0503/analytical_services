@@ -191,8 +191,10 @@ for i in df_stats['match_name'].tolist():
     realtime_match = pd.concat([extract_goals, realtime_match], axis=0, ignore_index=True)
 
 
-df_to_inform_realtime = realtime_match.merge(df_alerts_ou, left_on='match_name', right_on='match_name')
+all_match_within_signals = df_alerts_hc['match_name'].tolist() + df_alerts_ou['match_name'].tolist()
 
+df_to_inform_realtime = realtime_match[realtime_match['match_name'].isin(all_match_within_signals)]
+df_to_inform_realtime = df_to_inform_realtime.sort_values(by=['match_name', 'goal_time'], ascending=[0, 1])
 
 from hook.telegram_v2 import send_telegram_message
 

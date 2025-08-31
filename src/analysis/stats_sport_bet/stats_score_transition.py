@@ -4,7 +4,7 @@ import pandas as pd
 def parse_match_name(match_name: str):
     """Parse the score into home and away goals."""
     home_name, away_name = map(str, match_name.split('-'))
-    return home_name, home_name
+    return home_name, away_name
 
 def convert_bet_odds(odds: str) -> float:
     """
