@@ -137,7 +137,7 @@ all_team = df_stats['home_name'].tolist() + df_stats['away_name'].tolist()
 
 sql_stats =  f"""
 SELECT * FROM "188bet_log" 
-WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '3000 hours'
+WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '2200 hours'
 AND "run_time"::TIMESTAMP <= (NOW()::timestamp - INTERVAL '7 hours')
 AND (split_part(match_name, '-', 1) IN {all_team} OR split_part(match_name, '-', 2) IN {all_team})
 """
