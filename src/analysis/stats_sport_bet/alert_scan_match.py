@@ -88,7 +88,7 @@ hc_condition = (
 ) | (
     (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
     (df_join_hc['success_rate_fromscore'] >= 0.4)  &
-    (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
+    (df_join_hc['rate_hh'].astype(float) >= 0.90)  &
     (df_join_hc['score'].isin(['3-0', '0-3', '4-1', '4-1', '3-1', '1-3'])) & 
     (df_join_hc['hh_value'].isin(['0.25', '-0.25', '0.50', '-0.50']))  
 )
@@ -119,12 +119,12 @@ ou_condition = (
     (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) & 
     (df_join_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75'])) & 
     (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.50', '0.50'])) &
-    (df_join_ou['rate_over'].astype(float) >= 0.98)
-) | (
-    (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-1', '1-2'])) &
-    (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75'])) & 
-    # (df_join_ou['success_rate_fromscore'] >= 0.3) &
     (df_join_ou['rate_over'].astype(float) >= 0.90)
+) | (
+    (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-1', '1-2', '2-3', '3-2'])) &
+    (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75', '4.50', '4.75'])) & 
+    # (df_join_ou['success_rate_fromscore'] >= 0.3) &
+    (df_join_ou['rate_over'].astype(float) >= 0.88)
 )
 
 
@@ -163,11 +163,11 @@ for i in all_team:
 
 df1 = pd.DataFrame(data_match_stats)
 
-df_alerts_hc = df_alerts_hc.merge(df1, left_on='home_name', right_on='team')
-df_alerts_hc = df_alerts_hc.merge(df1, left_on='away_name', right_on='team', suffixes=("_home", "_away"))
+df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='home_name', right_on='team')
+df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
-df_alerts_ou = df_alerts_ou.merge(df1, left_on='home_name', right_on='team')
-df_alerts_ou = df_alerts_ou.merge(df1, left_on='away_name', right_on='team', suffixes=("_home", "_away"))
+df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
+df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
 sql_realtime = """
    WITH ranked AS (
