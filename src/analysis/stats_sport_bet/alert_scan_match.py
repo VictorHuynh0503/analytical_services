@@ -122,8 +122,8 @@ ou_condition = (
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 ) | (
     (df_join_ou['score'].isin(['0-0', '1-0', '0-1', '2-1', '1-2'])) &
-    (df_join_ou['line_value'].isin(['1.5', '1.75', '3.5', '3.75'])) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.4) &
+    (df_join_ou['line_value'].isin(['1.5', '1.75', '2.5', '2.75', '3.5', '3.75'])) & 
+    (df_join_ou['success_rate_fromscore'] >= 0.3) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 )
 
@@ -185,7 +185,10 @@ sql_realtime = """
 resp = requests.post("http://165.232.188.235:8000/query/log",
                     json={"sql": f"{sql_realtime}"})
 data = resp.json()
-df_realtime = pd.DataFrame(data["rows"], columns=data["columns"])
+try:
+    df_realtime = pd.DataFrame(data["rows"], columns=data["columns"])
+except Exception as e:
+    df_realtime = pd.DataFrame()
 
 realtime_match = pd.DataFrame()
 
