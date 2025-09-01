@@ -121,7 +121,8 @@ ou_condition = (
     (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.5', '0.5'])) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 ) | (
-    (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) & 
+    (df_join_ou['score'].isin(['0-0', '1-0', '0-1', '2-1', '1-2'])) &
+    (df_join_ou['line_value'].isin(['1.5', '1.75', '3.5', '3.75'])) & 
     (df_join_ou['success_rate_fromscore'] >= 0.4) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 )
@@ -146,8 +147,10 @@ AND (split_part(match_name, '-', 1) IN {all_team} OR split_part(match_name, '-',
 resp = requests.post("http://165.232.188.235:8000/query/log",
                     json={"sql": f"{sql_stats}"})
 data = resp.json()
-df_to_stats = pd.DataFrame(data["rows"], columns=data["columns"])
-
+try:
+    df_to_stats = pd.DataFrame(data["rows"], columns=data["columns"])
+except Exception as e:
+    df_to_stats = pd.DataFrame()
 
 data_match_stats = []
 # data_extract_goal_events = []
