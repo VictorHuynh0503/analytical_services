@@ -90,7 +90,7 @@ hc_condition = (
     (df_join_hc['success_rate_fromscore'] >= 0.4)  &
     (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
     (df_join_hc['score'].isin(['3-0', '0-3', '4-1', '4-1', '3-1', '1-3'])) & 
-    (df_join_hc['hh_value'].isin(['0.25', '-0.25', '0.5', '-0.5']))  
+    (df_join_hc['hh_value'].isin(['0.25', '-0.25', '0.50', '-0.50']))  
 )
 
 df_alerts_hc = df_join_hc[hc_condition]
@@ -117,13 +117,13 @@ ou_condition = (
     (df_join_ou['total_for_fromscore_line'] >= 20) & 
     (df_join_ou['success_rate_fromscore'] >= 0.4) &
     (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) & 
-    (df_join_ou['line_value'].isin(['1.5', '1.75', '3.5', '3.75'])) & 
-    (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.5', '0.5'])) &
+    (df_join_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75'])) & 
+    (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.50', '0.50'])) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 ) | (
-    (df_join_ou['score'].isin(['0-0', '1-0', '0-1', '2-1', '1-2'])) &
-    (df_join_ou['line_value'].isin(['1.5', '1.75', '2.5', '2.75', '3.5', '3.75'])) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.3) &
+    (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) &
+    (df_join_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75'])) & 
+    # (df_join_ou['success_rate_fromscore'] >= 0.3) &
     (df_join_ou['rate_over'].astype(float) >= 0.98)
 )
 
