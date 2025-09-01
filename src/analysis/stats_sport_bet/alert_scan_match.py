@@ -124,7 +124,7 @@ ou_condition = (
     (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-1', '1-2'])) &
     (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75'])) & 
     # (df_join_ou['success_rate_fromscore'] >= 0.3) &
-    (df_join_ou['rate_over'].astype(float) >= 0.98)
+    (df_join_ou['rate_over'].astype(float) >= 0.90)
 )
 
 
