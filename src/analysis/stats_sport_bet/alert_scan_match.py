@@ -219,6 +219,7 @@ df_tele = df_alerts_hc[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'total_for_fromscore_handicap', 'success_rate_fromscore', 
        'matches_analyzed_home', 
        'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
+       'matches_analyzed_away',
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
        ]]
 
@@ -247,6 +248,7 @@ df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'total_for_fromscore_line', 'success_rate_fromscore',
        'matches_analyzed_home', 
        'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
+       'matches_analyzed_away',
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
        ]]
 
