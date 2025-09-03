@@ -161,9 +161,14 @@ data_match_stats = []
 
 for i in all_team:
     print(f"\nAnalyzing {i}...")
-    stats = match_stats(df_to_stats, i, last_n=5)
+    try:
+        stats = match_stats(df_to_stats, i, last_n=5)
+        data_match_stats.append(stats)
+    except Exception as e:
+        print(f"Error processing team {i}: {e}")
+        continue
     # print(f"Results is {stats}")
-    data_match_stats.append(stats)
+ 
 
 df1 = pd.DataFrame(data_match_stats)
 

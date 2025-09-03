@@ -27,6 +27,13 @@ class OHLCData:
     timeframe: str = "1m"
     category: str = ""
     subcategory: str = ""
+    
+@dataclass
+class TradeSetup:
+    symbol: str
+    entry: float
+    stoploss: float
+    target: float
 
 class DatabaseManager:
     def __init__(self, db_path: str = "trading_data.db"):
@@ -239,6 +246,7 @@ class TradingViewWebSocket:
         self.subscribed_symbols = {}  # symbol -> {category, subcategory}
         self.db_manager = db_manager
         self.price_cache = {}  # Store latest prices for OHLC calculation
+        self.trade_setups: Dict[str, TradeSetup] = {}  # trade setups registered by user
         
     def _generate_session_id(self):
         """Generate a random session ID"""
@@ -543,92 +551,209 @@ class TradingViewWebSocket:
         )
         self.ws.run_forever()
 
+    def add_trade_setup(self, symbol: str, entry: float, stoploss: float, target: float):
+        """Register a trade setup for monitoring"""
+        self.trade_setups[symbol] = TradeSetup(symbol, entry, stoploss, target)
+        logger.info(f"📌 Trade setup added: {symbol} | Entry:{entry} | SL:{stoploss} | TP:{target}")
+    
+    def check_trade_proximity(self, symbol: str, current_price: float):
+        """Check proximity to target or stoploss and escalate if close"""
+        if symbol not in self.trade_setups:
+            return
+        
+        setup = self.trade_setups[symbol]
+        
+        # % distance to SL and TP
+        dist_to_sl = ((current_price - setup.stoploss) / setup.stoploss) * 100
+        dist_to_tp = ((setup.target - current_price) / setup.target) * 100
+        
+        alerts = []
+        
+        if abs(dist_to_sl) <= 2:  # within 2% of stoploss
+            alerts.append(f"⚠️ {symbol} is {dist_to_sl:.2f}% away from STOPLOSS {setup.stoploss}")
+        
+        if abs(dist_to_tp) <= 2:  # within 2% of target
+            alerts.append(f"🚀 {symbol} is {dist_to_tp:.2f}% away from TARGET {setup.target}")
+        
+        for alert in alerts:
+            logger.warning(alert)
+    
+    def check_entry_deviation(self, symbol: str, current_price: float):
+        """Check if current price deviates ±5% from entry"""
+        if symbol not in self.trade_setups:
+            return
+        
+        setup = self.trade_setups[symbol]
+        deviation = ((current_price - setup.entry) / setup.entry) * 100
+        
+        if abs(deviation) <= 5:
+            logger.info(f"📊 {symbol} deviation from entry {setup.entry}: {deviation:+.2f}% (Current {current_price})")
+    
+    def _handle_quote_data(self, params):
+        if len(params) >= 2:
+            quote_data = params[1]
+            if isinstance(quote_data, dict):
+                symbol = quote_data.get('n')
+                if 'v' in quote_data and symbol in self.subscribed_symbols:
+                    values = quote_data['v']
+                    last_price = values.get('lp')
+                    
+                    if last_price:
+                        # ✅ store latest price in price_cache
+                        self.price_cache[symbol] = {
+                            'symbol': symbol,
+                            'close': float(last_price),
+                            'timestamp': datetime.now()
+                        }
+                        
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        """Fetch the most recent cached close price for a symbol"""
+        latest_price = None
+        latest_time = None
+        for cache_key, data in self.price_cache.items():
+            if data['symbol'] == symbol:
+                if latest_time is None or data['timestamp'] > latest_time:
+                    latest_time = data['timestamp']
+                    latest_price = data['close']
+        return latest_price
+                        
+    def run_trade_checks(self):
+        """Run checks for all trade setups using the latest cached price"""
+        for symbol, setup in self.trade_setups.items():
+            current_price = self.get_current_price(symbol)
+            if current_price:
+                self.check_trade_proximity(symbol, current_price)
+                self.check_entry_deviation(symbol, current_price)
+            else:
+                logger.debug(f"No price available yet for {symbol}")
+
 def main():
-    """Main function to run the streaming system"""
-    # Initialize database
+    
+
     db_manager = DatabaseManager()
     
     # Initialize WebSocket client
     tv_ws = TradingViewWebSocket(db_manager)
     
-    # Schedule OHLC data saving every minute
-    schedule.every().minute.do(tv_ws.save_ohlc_data_to_db)
-    
-    def run_scheduler():
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-    
-    # Start scheduler in separate thread
-    scheduler_thread = threading.Thread(target=run_scheduler)
-    scheduler_thread.daemon = True
-    scheduler_thread.start()
-    
-    # Start WebSocket connection in separate thread
-    ws_thread = threading.Thread(target=tv_ws.connect)
-    ws_thread.daemon = True
-    ws_thread.start()
-    
-    # Wait for connection
-    time.sleep(3)
-    
-    # Subscribe to different categories
-    symbol_manager = SymbolManager()
-    
-    # Vietnam Stocks
-    logger.info("Subscribing to Vietnam stocks...")
-    vietnam_stocks = symbol_manager.get_vietnam_stocks()
-    tv_ws.subscribe_symbols_from_category(vietnam_stocks, "Vietnam_Stock", "HOSE")
-    
-    time.sleep(2)
-    
-    # US Stocks
-    logger.info("Subscribing to US stocks...")
-    us_stocks = symbol_manager.get_us_stocks()
-    tv_ws.subscribe_symbols_from_category(us_stocks, "US_Stock", "US")
-    
-    time.sleep(2)
-    
-    # Crypto
-    logger.info("Subscribing to cryptocurrencies...")
-    crypto = symbol_manager.get_crypto()
-    tv_ws.subscribe_symbols_from_category(crypto, "Crypto", "Binance")
-    
-    time.sleep(2)
-    
-    # Forex
-    logger.info("Subscribing to forex pairs...")
-    forex = symbol_manager.get_forex()
-    tv_ws.subscribe_symbols_from_category(forex, "Forex", "FX")
-    
-    logger.info(f"Total symbols subscribed: {len(tv_ws.subscribed_symbols)}")
-    logger.info("Starting data collection... Press Ctrl+C to stop")
-    
-    # Start OHLC summary printer
-    tv_ws.start_summary_printer()
+    tv_ws.add_trade_setup("BINANCE:ETHUSDT", entry=4320, stoploss=4000, target=4500)
+    tv_ws.add_trade_setup("OANDA:XAUUSD", entry=3520, stoploss=3570, target=3515)
+    tv_ws.add_trade_setup("BINANCE:BTCUSDT", entry=110600, stoploss=110000, target=120000)
     
     try:
         while True:
             time.sleep(1)
-            
-            # Optional: Print live summary every 60 seconds
+
+            # ✅ Run trade checks each second
+            tv_ws.run_trade_checks()
+
+            # Optional: log system status every 60s
             if int(time.time()) % 60 == 0:
                 logger.info(f"📈 Active symbols: {len(tv_ws.subscribed_symbols)} | "
-                          f"Cache size: {len(tv_ws.price_cache)} | "
-                          f"Time: {datetime.now().strftime('%H:%M:%S')}")
-                
+                            f"Cache size: {len(tv_ws.price_cache)} | "
+                            f"Time: {datetime.now().strftime('%H:%M:%S')}")
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         
-        # Print final summary before shutdown
-        logger.info("Final OHLC Summary:")
-        tv_ws.print_ohlc_summary_table()
+
+    # Schedule OHLC data saving every minute
+    # schedule.every().minute.do(tv_ws.save_ohlc_data_to_db)
+    
+    # def run_scheduler():
+    #     while True:
+    #         schedule.run_pending()
+    #         time.sleep(1)
+    
+    # # Start scheduler in separate thread
+    # scheduler_thread = threading.Thread(target=run_scheduler)
+    # scheduler_thread.daemon = True
+    # scheduler_thread.start()
+
+# def main():
+#     """Main function to run the streaming system"""
+#     # Initialize database
+#     db_manager = DatabaseManager()
+    
+#     # Initialize WebSocket client
+#     tv_ws = TradingViewWebSocket(db_manager)
+    
+#     # Schedule OHLC data saving every minute
+#     schedule.every().minute.do(tv_ws.save_ohlc_data_to_db)
+    
+#     def run_scheduler():
+#         while True:
+#             schedule.run_pending()
+#             time.sleep(1)
+    
+#     # Start scheduler in separate thread
+#     scheduler_thread = threading.Thread(target=run_scheduler)
+#     scheduler_thread.daemon = True
+#     scheduler_thread.start()
+    
+#     # Start WebSocket connection in separate thread
+#     ws_thread = threading.Thread(target=tv_ws.connect)
+#     ws_thread.daemon = True
+#     ws_thread.start()
+    
+#     # Wait for connection
+#     time.sleep(3)
+    
+#     # Subscribe to different categories
+#     symbol_manager = SymbolManager()
+    
+#     # Vietnam Stocks
+#     logger.info("Subscribing to Vietnam stocks...")
+#     vietnam_stocks = symbol_manager.get_vietnam_stocks()
+#     tv_ws.subscribe_symbols_from_category(vietnam_stocks, "Vietnam_Stock", "HOSE")
+    
+#     time.sleep(2)
+    
+#     # US Stocks
+#     logger.info("Subscribing to US stocks...")
+#     us_stocks = symbol_manager.get_us_stocks()
+#     tv_ws.subscribe_symbols_from_category(us_stocks, "US_Stock", "US")
+    
+#     time.sleep(2)
+    
+#     # Crypto
+#     logger.info("Subscribing to cryptocurrencies...")
+#     crypto = symbol_manager.get_crypto()
+#     tv_ws.subscribe_symbols_from_category(crypto, "Crypto", "Binance")
+    
+#     time.sleep(2)
+    
+#     # Forex
+#     logger.info("Subscribing to forex pairs...")
+#     forex = symbol_manager.get_forex()
+#     tv_ws.subscribe_symbols_from_category(forex, "Forex", "FX")
+    
+#     logger.info(f"Total symbols subscribed: {len(tv_ws.subscribed_symbols)}")
+#     logger.info("Starting data collection... Press Ctrl+C to stop")
+    
+#     # Start OHLC summary printer
+#     tv_ws.start_summary_printer()
+    
+#     try:
+#         while True:
+#             time.sleep(1)
+            
+#             # Optional: Print live summary every 60 seconds
+#             if int(time.time()) % 60 == 0:
+#                 logger.info(f"📈 Active symbols: {len(tv_ws.subscribed_symbols)} | "
+#                           f"Cache size: {len(tv_ws.price_cache)} | "
+#                           f"Time: {datetime.now().strftime('%H:%M:%S')}")
+                
+#     except KeyboardInterrupt:
+#         logger.info("Shutting down...")
         
-        # Save any remaining OHLC data
-        tv_ws.save_ohlc_data_to_db()
+#         # Print final summary before shutdown
+#         logger.info("Final OHLC Summary:")
+#         tv_ws.print_ohlc_summary_table()
         
-        if tv_ws.ws:
-            tv_ws.ws.close()
+#         # Save any remaining OHLC data
+#         tv_ws.save_ohlc_data_to_db()
+        
+#         if tv_ws.ws:
+#             tv_ws.ws.close()
 
 if __name__ == "__main__":
     main()
