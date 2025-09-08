@@ -52,6 +52,25 @@ df_parsed = parse_odds_columns(df)
 df_parsed['home_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[0])
 df_parsed['away_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[1])
 
+# Function to parse minute
+def parse_minute(val):
+    if val == "[]" or pd.isna(val):
+        return np.nan  # keep track of empty
+    try:
+        # remove brackets and split mm:ss
+        minute, _ = val.strip("[]").split(":")
+        return int(minute)
+    except Exception:
+        return np.nan
+
+# Create new column with parsed minute
+df_parsed["minute"] = df_parsed["current_time"].apply(parse_minute)
+
+# Filter: keep rows where minute < 90 OR is NaN (empty)
+df_parsed = df_parsed[(df_parsed["minute"].isna()) | (df_parsed["minute"] < 85)]
+
+
+
 from dotenv import load_dotenv
 import os
 
