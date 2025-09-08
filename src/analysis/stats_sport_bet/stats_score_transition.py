@@ -2,8 +2,13 @@ import pandas as pd
 
 # --- Parsing helpers ---
 def parse_match_name(match_name: str):
-    """Parse the score into home and away goals."""
-    home_name, away_name = map(str, match_name.split('-'))
+    """Parse the match name into home and away teams."""
+    try:
+        # keep your old logic
+        home_name, away_name = map(str.strip, match_name.split('-'))
+    except ValueError:
+        # fallback: only split on the last '-'
+        home_name, away_name = map(str.strip, match_name.rsplit('-', 1))
     return home_name, away_name
 
 def convert_bet_odds(odds: str) -> float:

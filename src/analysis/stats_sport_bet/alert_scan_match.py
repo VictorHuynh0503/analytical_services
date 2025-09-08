@@ -178,6 +178,95 @@ df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
+
+import numpy as np
+
+# Define conditions with labels
+conditions = [
+    ( #### Home win over 80%
+        (df_alerts_ou['wins_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Home win over 80%"
+    ),
+    ( #### Away win over 80%
+        (df_alerts_ou['wins_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Away win over 80%"
+    ),
+    ( #### Home win + draw over 80%
+        (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Home win+draw over 80%"
+    ),
+    (
+        (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Away win+draw over 80%"
+    ),
+    ( #### Goals > 1.5 per match
+        (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Home avg goals > 1.5"
+    ),
+    (
+        (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Away avg goals > 1.5"
+    ),
+    ( #### Underperformance
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+        (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] <= df_alerts_ou['matches_analyzed_home'] * 0.7) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Home underperform"
+    ),
+    (
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] <= df_alerts_ou['matches_analyzed_away'] * 0.7) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Away underperform"
+    ),
+]
+
+# Start with empty comment column
+df_alerts_ou["comment"] = np.nan
+
+# Apply conditions one by one and add the comment
+for cond, label in conditions:
+    df_alerts_ou.loc[cond, "comment"] = label
+
+# Finally, filter only rows that match at least one condition
+df_alerts_ou = df_alerts_ou[df_alerts_ou["comment"].notna()]
+
+# stats_condition = ( #### Home win over 80%
+#     (df_alerts_ou['wins_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
+#     (df_alerts_ou['matches_analyzed_home'] >=3) 
+# ) | (
+#     (df_alerts_ou['wins_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+#     (df_alerts_ou['matches_analyzed_away'] >=3) 
+# ) | ( #### Home win + draw over 80%
+#     (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+#     (df_alerts_ou['matches_analyzed_home'] >=3) 
+# ) | (
+#     (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+#     (df_alerts_ou['matches_analyzed_away'] >=3) 
+# ) | ( #### Number of goals exceed 1.5 in each match for last 5 matches
+#     (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
+#     (df_alerts_ou['matches_analyzed_home'] >=3) 
+# ) | (
+#     (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
+#     (df_alerts_ou['matches_analyzed_away'] >=3) 
+# ) | ( #### Number of match under perform
+#     (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+#     (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] <= df_alerts_ou['matches_analyzed_home'] * 0.7) &
+#     (df_alerts_ou['matches_analyzed_home'] >=3) 
+# ) | (
+#     (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+#     (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] <= df_alerts_ou['matches_analyzed_away'] * 0.7) &
+#     (df_alerts_ou['matches_analyzed_away'] >=3) 
+# )
+
+# df_alerts_ou = df_alerts_ou[stats_condition]
+
 sql_realtime = """
    WITH ranked AS (
     SELECT *,
@@ -254,7 +343,8 @@ df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'matches_analyzed_home', 
        'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
        'matches_analyzed_away',
-       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
+       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
+       'comment'
        ]]
 
 chunk_size = 10
@@ -279,27 +369,27 @@ for i in range(0, len(df_list)):
 ################### Realtime Match Analysis #################
 
 ##### DF_UNDER
-df_tele = df_to_inform_realtime[['match_name', 'new_score', 'goal_time', 'new_over_under',
-       'new_handicap', 'pre_score', 'pre_time', 'pre_over_under',
-       'pre_handicap']]
+# df_tele = df_to_inform_realtime[['match_name', 'new_score', 'goal_time', 'new_over_under',
+#        'new_handicap', 'pre_score', 'pre_time', 'pre_over_under',
+#        'pre_handicap']]
 
 
-chunk_size = 10
-df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
+# chunk_size = 10
+# df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
 
-for i in range(0, len(df_list)):
-    item_tele = df_list[i]
+# for i in range(0, len(df_list)):
+#     item_tele = df_list[i]
     
-    if item_tele.empty:
-        print("There's nothing to alert")
-    # for i in industry:
-    #     print("Nganh: ", i)
-    #     df_tele_f = df_tele.loc[df_tele['industry']==i]
-    #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
-    #     df_tele_f = df_tele_f.head(5)
-        pass
-    else:
-        send_telegram_message(item_tele, token, chat_id)
+#     if item_tele.empty:
+#         print("There's nothing to alert")
+#     # for i in industry:
+#     #     print("Nganh: ", i)
+#     #     df_tele_f = df_tele.loc[df_tele['industry']==i]
+#     #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
+#     #     df_tele_f = df_tele_f.head(5)
+#         pass
+#     else:
+#         send_telegram_message(item_tele, token, chat_id)
 
 
 
