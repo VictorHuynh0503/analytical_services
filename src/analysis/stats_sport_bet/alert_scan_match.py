@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import sys
 import os
+import numpy as np
 
 from dotenv import load_dotenv
 load_dotenv()  # This loads variables from .env into environment
@@ -197,8 +198,6 @@ df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
-
-import numpy as np
 
 # Define conditions with labels
 conditions = [
