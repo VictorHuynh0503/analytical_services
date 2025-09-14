@@ -140,7 +140,7 @@ class SymbolManager:
         return {
             "top_tier": {
                 "symbols": ["HOSE:VIC", "HOSE:VHM", "HOSE:VCB", "HOSE:GAS", "HOSE:MSN", 
-                           "HOSE:BID", "HOSE:VNM", "HOSE:HPG", "HOSE:CTG", "HOSE:TCB"],
+                           "HOSE:BID", "HOSE:VNM", "HOSE:HPG", "HOSE:CTG", "HOSE:TCB", "HOSE:VN30", "HNX:VN301!"],
                 "names": ["Vingroup", "Vinhomes", "Vietcombank", "Gas", "Masan Group",
                          "BIDV", "Vinamilk", "Hoa Phat", "VietinBank", "Techcombank"]
             },

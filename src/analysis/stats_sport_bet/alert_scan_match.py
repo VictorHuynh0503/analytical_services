@@ -201,47 +201,74 @@ df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on
 
 # Define conditions with labels
 conditions = [
-    ( #### Home win over 80%
-        (df_alerts_ou['wins_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Home win over 80%"
-    ),
-    ( #### Away win over 80%
-        (df_alerts_ou['wins_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Away win over 80%"
-    ),
-    ( #### Home win + draw over 80%
-        (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Home win+draw over 80%"
-    ),
-    (
-        (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Away win+draw over 80%"
-    ),
-    ( #### Goals > 1.5 per match
-        (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Home avg goals > 1.5"
-    ),
-    (
-        (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Away avg goals > 1.5"
-    ),
     ( #### Underperformance
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
         (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] <= df_alerts_ou['matches_analyzed_home'] * 0.7) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
         "Home underperform"
     ),
     (
         (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
         (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] <= df_alerts_ou['matches_analyzed_away'] * 0.7) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
         "Away underperform"
+    ),
+    ( #### Home + Away win over 80%
+        (df_alerts_ou['wins_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Home win over 80%"
+    ),
+    (
+        (df_alerts_ou['wins_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Away win over 80%"
+    ),
+    ( #### Home win + draw over 80%
+        (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3),
+        "Home win+draw over 80%"
+    ),
+    (
+        (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
+        (df_alerts_ou['matches_analyzed_home'] >= 3),
+        "Away win+draw over 80%"
+    ),
+    ( #### Goals > 1.5 second half
+        (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2),  
+        "Home second half avg goals > 1.5"
+    ),
+    (
+        (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
+        "Away second half avg goals > 1.5"
+    ),
+    
+    ( #### Goals > 1.5 first half
+        (df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.3) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2),  
+        "Home first half avg goals > 1.3"
+    ),
+    (
+        (df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.3) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
+        "Away first half avg goals > 1.3"
     ),
 ]
 
