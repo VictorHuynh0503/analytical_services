@@ -24,10 +24,24 @@ async def webhook_help():
         "commands": ["/runflow <flow_name>", "/help"]
     }
 
-# ✅ Telegram webhook endpoint (must be POST)
+# ✅ New endpoint: manually trigger the flow
+@app.post("/webhook/runflow")
+async def runflow_endpoint():
+    try:
+        # Run your script with the exact environment
+        subprocess.Popen([
+            "/root/selenium-env/bin/python",
+            "/root/analytical_services/src/analysis/stats_sport_bet/alert_scan_match_use_for_tele.py"
+        ])
+        return {"ok": True, "message": "Flow started successfully"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ✅ Telegram webhook (still works for chat commands)
 @app.post("/webhook")
 async def webhook(request: Request):
     data = await request.json()
+    print("📩 Incoming update:", data)
 
     message = data.get("message", {})
     chat_id = message.get("chat", {}).get("id")
@@ -36,22 +50,18 @@ async def webhook(request: Request):
     if not text:
         return {"ok": True}
 
-    # Command: /runflow
-    if text.startswith("/runflow"):
-        parts = text.split(" ", 1)
-        if len(parts) == 2:
-            flow_name = parts[1].strip()
-        else:
-            flow_name = "default"
-
+    if text.startswith("/runflow alert_scan_match_use_for_tele"):
         try:
-            subprocess.Popen(["python", f"flows/{flow_name}.py"])
-            send_message(chat_id, f"✅ Flow '{flow_name}' started!")
+            subprocess.Popen([
+                "/root/selenium-env/bin/python",
+                "/root/analytical_services/src/analysis/stats_sport_bet/alert_scan_match_use_for_tele.py"
+            ])
+            send_message(chat_id, "✅ Flow 'alert_scan_match' started!")
         except Exception as e:
             send_message(chat_id, f"❌ Error: {e}")
 
     elif text.startswith("/help"):
-        send_message(chat_id, "Available commands:\n/runflow <flow_name> - Start a flow")
+        send_message(chat_id, "Commands:\n/runflow alert_scan_match - Start the flow")
 
     return {"ok": True}
 
@@ -60,3 +70,9 @@ async def webhook(request: Request):
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": chat_id, "text": text})
+    
+    
+    
+
+
+
