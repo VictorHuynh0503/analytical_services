@@ -15,8 +15,14 @@ def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": chat_id, "text": text})
 
+@app.post("/webhook")
 async def webhook(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception:
+        return {"ok": False, "error": "Invalid JSON"}
+
+    print("📩 Incoming update:", data)
 
     message = data.get("message", {})
     chat_id = message.get("chat", {}).get("id")
