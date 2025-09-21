@@ -146,7 +146,8 @@ ou_condition = (
     # (df_join_ou['success_rate_fromscore'] >= 0.3) &
     (df_join_ou['rate_over'].astype(float) >= 0.88)
 )| (
-    (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-0', '0-2', '2-1', '1-2', '2-3', '3-2', '2-2', '1-3', '3-1', '4-1', '1-4', '0-0', '3-3', '0-3', '3-0'])) 
+    (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-0', '0-2', '2-1', '1-2', '2-3', '3-2', '2-2', '1-3', '3-1', '4-1', '1-4', '3-3', '0-3', '3-0']))
+    
     # (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75', '4.50', '4.75'])) 
     # (df_join_ou['success_rate_fromscore'] >= 0.3) &
     # (df_join_ou['rate_over'].astype(float) >= 0.88)
@@ -269,6 +270,20 @@ conditions = [
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
         "Away first half avg goals > 1.3"
+    ),
+    (
+        (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
+        (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
+        "Bet Over Away"
+    ),
+    (
+        (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
+        (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
+        "Bet Over Home"
     ),
     (
     (df_alerts_ou["id"].notna()),
