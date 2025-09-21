@@ -45,6 +45,64 @@ def standardize_df(df):
 
 df_final = standardize_df(df)
 
+
+def get_top_capitalization(df, top_n=10) -> list:
+    
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Get the latest date per ticker
+    latest_df = df.sort_values(['Date']).groupby('Ticker').tail(1)
+
+    # Calculate capitalization = Volume * Close
+    latest_df['capitalization'] = latest_df['Volume'] * latest_df['Close']
+
+    # Get top 20 by capitalization
+    top_list = latest_df.sort_values('capitalization', ascending=False).head(top_n)
+
+    print(top_list[['Ticker', 'Date', 'Close', 'Volume', 'capitalization', 'name_vn']])
+    
+    list_of_tickers = top_list['Ticker'].tolist()
+    
+    print(list_of_tickers)
+
+    return list_of_tickers
+
+
+def get_top_avg_cap(df: pd.DataFrame, top_n=10) -> list:
+    # Ensure Date is datetime
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Get latest date
+    latest_date = df['Date'].max()
+    start_date = latest_date - pd.Timedelta(days=10)
+
+    # Filter last 10 days (inclusive)
+    df_window = df[(df['Date'] >= start_date) & (df['Date'] <= latest_date)]
+
+    # Calculate capitalization
+    df_window['capitalization'] = df_window['Volume'] * df_window['Close']
+
+    # Compute average capitalization per ticker
+    avg_cap = (
+        df_window.groupby('Ticker')['capitalization']
+        .mean()
+        .reset_index()
+    )
+
+    # Get top 20
+    top10 = avg_cap.sort_values('capitalization', ascending=False).head(top_n)
+    
+    top_list = top10.merge(df_info[['stock_code', 'name_vn']], left_on='Ticker', right_on='stock_code', how='left')
+    top_list = top_list.merge(df_nganh[['ticker', 'industry']], left_on='Ticker', right_on='ticker', how='left')
+            
+    print(top_list[['Ticker', 'capitalization', 'name_vn']])
+    
+    list_of_tickers = top_list['Ticker'].tolist()
+    
+    print(list_of_tickers)
+
+    return top_list
+
 list_of_industry = ['personal__household_goods', 'chemicals', 'food__beverage',
        'financial_services', 'real_estate', 'banks', 'telecommunications',
        'insurance', 'industrial_goods__services', 'retail',
@@ -56,12 +114,13 @@ list_of_industry = ['personal__household_goods', 'chemicals', 'food__beverage',
 df_bank = df_final[df_final['industry'].str.contains('banks', na=False)]
 df_ins = df_final[df_final['industry'].str.contains('industrial_goods__services', na=False)]
 
-df_selected = df_final[df_final['industry'].str.contains('construction__materials', na=False)]
+df_selected = df_final[df_final['industry'].str.contains('basic_resources', na=False)]
 
+ticker_selected = get_top_capitalization(df_selected, top_n=10)
 
 from src.analysis.technical_analysis.dow_simple import DowTheoryAnalyzer
 
-for i in df_selected['Ticker'].unique()[0:10]:
+for i in ticker_selected:
     print(f"\nAnalyzing {i}...")
     df = df_selected[df_selected['Ticker'] == i].copy()
     print(df.shape)

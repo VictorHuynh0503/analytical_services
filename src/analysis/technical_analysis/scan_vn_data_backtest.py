@@ -64,7 +64,7 @@ for i in df_bank['Ticker'].unique():
     ]
     
     start_date = datetime(2025, 1, 1)
-    end_date = datetime(2025, 9, 1)
+    end_date = datetime(2025, 10, 1)
     
     for asset in assets[:1]:  # Test with GOLD first
         print(f"\n{'='*50}")
