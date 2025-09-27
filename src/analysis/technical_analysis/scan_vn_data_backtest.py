@@ -85,11 +85,11 @@ for i in df_bank['Ticker'].unique():
         print(f"Price range: ${data['Low'].min():.2f} - ${data['High'].max():.2f}")
         
         # Initialize and run strategy
-        strategy = AdvancedTradingStrategy(data, asset['symbol'])
+        strategy = AdvancedTradingStrategy(data, i)
         trades = strategy.execute_strategy()
         
         # Display results
-        print(f"\nStrategy Results for {asset['symbol']}:")
+        print(f"\nStrategy Results for {i}:")
         print("-" * 40)
         
         if trades:

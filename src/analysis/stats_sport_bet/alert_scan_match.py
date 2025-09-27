@@ -203,6 +203,30 @@ df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on
 
 # Define conditions with labels
 conditions = [
+    ( #### Goals > 1.5 second half
+        (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 0.8) &
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])) &
+        (df_alerts_ou['goals_second_half_away'] < df_alerts_ou['matches_analyzed_away'] * 0.6),  
+        "Home second half goals - Bet Handicap Home"
+    ),
+    ( #### Goals > 1.5 second half
+        (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 0.8) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])) &
+        (df_alerts_ou['goals_second_half_home'] < df_alerts_ou['matches_analyzed_home'] * 0.6),  
+        "Away second half goals - Bet Handicap Away"
+    ),
+    ( #### Goals > 1.5 second half
+        (df_alerts_ou['goals_second_half_away'] < df_alerts_ou['matches_analyzed_away'] * 0.6) &
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['1-0', '1-1', '0-1'])) &
+        (df_alerts_ou['goals_second_half_home'] < df_alerts_ou['matches_analyzed_home'] * 0.6),  
+        "Bet Under"
+    ),
     ( #### Underperformance
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
         (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] <= df_alerts_ou['matches_analyzed_home'] * 0.7) &

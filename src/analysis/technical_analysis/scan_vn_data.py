@@ -114,15 +114,20 @@ list_of_industry = ['personal__household_goods', 'chemicals', 'food__beverage',
 df_bank = df_final[df_final['industry'].str.contains('banks', na=False)]
 df_ins = df_final[df_final['industry'].str.contains('industrial_goods__services', na=False)]
 
-df_selected = df_final[df_final['industry'].str.contains('basic_resources', na=False)]
 
-ticker_selected = get_top_capitalization(df_selected, top_n=10)
+top_10_each_industry = []
+
+for i in list_of_industry:
+    df_selected = df_final[df_final['industry'].str.contains(i, na=False)]
+    ticker_selected = get_top_capitalization(df_selected, top_n=10)
+    print(f"Top 10 for industry {i}: {ticker_selected}")
+    top_10_each_industry.extend(ticker_selected)
 
 from src.analysis.technical_analysis.dow_simple import DowTheoryAnalyzer
 
-for i in ticker_selected:
+for i in top_10_each_industry:
     print(f"\nAnalyzing {i}...")
-    df = df_selected[df_selected['Ticker'] == i].copy()
+    df = df_final[df_final['Ticker'] == i].copy()
     print(df.shape)
     
     df =df['Date,Open,High,Low,Close,Volume'.split(',')]
