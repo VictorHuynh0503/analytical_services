@@ -209,7 +209,7 @@ conditions = [
         (df_alerts_ou['minute'] >= 45) &
         (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])) &
         (df_alerts_ou['goals_second_half_away'] < df_alerts_ou['matches_analyzed_away'] * 0.6),  
-        "Home second half goals - Bet Handicap Home"
+        "BET Handicap HOME - Home second half goals"
     ),
     ( #### Goals > 1.5 second half
         (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 0.8) &
@@ -217,99 +217,119 @@ conditions = [
         (df_alerts_ou['minute'] >= 45) &
         (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])) &
         (df_alerts_ou['goals_second_half_home'] < df_alerts_ou['matches_analyzed_home'] * 0.6),  
-        "Away second half goals - Bet Handicap Away"
+        "BET Handicap AWAY - Away second half goals"
     ),
-    ( #### Goals > 1.5 second half
-        (df_alerts_ou['goals_second_half_away'] < df_alerts_ou['matches_analyzed_away'] * 0.6) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3) &
-        (df_alerts_ou['minute'] >= 45) &
-        (df_alerts_ou['score'].isin(['1-0', '1-1', '0-1'])) &
-        (df_alerts_ou['goals_second_half_home'] < df_alerts_ou['matches_analyzed_home'] * 0.6),  
-        "Bet Under"
-    ),
+    # ( #### Goals > 1.5 second half
+    #     (df_alerts_ou['goals_second_half_away'] < df_alerts_ou['matches_analyzed_away'] * 0.6) &
+    #     (df_alerts_ou['matches_analyzed_away'] >= 3) &
+    #     (df_alerts_ou['minute'] >= 45) &
+    #     (df_alerts_ou['score'].isin(['1-0', '1-1', '0-1'])) &
+    #     (df_alerts_ou['goals_second_half_home'] < df_alerts_ou['matches_analyzed_home'] * 0.6),  
+    #     "Bet Under"
+    # ),
     ( #### Underperformance
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
         (df_alerts_ou['goals_second_half_home'] + df_alerts_ou['goals_first_half_home'] <= df_alerts_ou['matches_analyzed_home'] * 0.7) &
         (df_alerts_ou['matches_analyzed_home'] >= 3) &
         (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Home underperform"
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0']))      
+        ,
+        "BET Handicap AWAY - Home underperform"
     ),
     (
         (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
         (df_alerts_ou['goals_second_half_away'] + df_alerts_ou['goals_first_half_away'] <= df_alerts_ou['matches_analyzed_away'] * 0.7) &
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
         (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Away underperform"
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3']))
+        ,
+        "BET Handicap HOME - Away underperform"
     ),
     ( #### Home + Away win over 80%
         (df_alerts_ou['wins_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
         (df_alerts_ou['matches_analyzed_home'] >= 3) &
         (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Home win over 80%"
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3']))        
+        ,
+        "BET Handicap HOME - Home win over 80%"
     ),
     (
         (df_alerts_ou['wins_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Away win over 80%"
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0']))         
+        ,
+        "BET Handicap AWAY - Away win over 80%"
     ),
     ( #### Home win + draw over 80%
         (df_alerts_ou['wins_home'] + df_alerts_ou['draws_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) &
         (df_alerts_ou['matches_analyzed_home'] >= 3) &
         (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3),
-        "Home win+draw over 80%"
+        (df_alerts_ou['matches_analyzed_away'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3']))           
+        ,
+        "BET Handicap HOME - Home win+draw over 80%"
     ),
     (
         (df_alerts_ou['wins_away'] + df_alerts_ou['draws_away'] >= df_alerts_ou['matches_analyzed_away'] - 1) &
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 1) & 
-        (df_alerts_ou['matches_analyzed_home'] >= 3),
-        "Away win+draw over 80%"
+        (df_alerts_ou['matches_analyzed_home'] >= 3) &
+        (df_alerts_ou['minute'] >= 45) &
+        (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0']))         
+        ,
+        "BET Handicap AWAY - Away win+draw over 80%"
     ),
     ( #### Goals > 1.5 second half
         (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
         (df_alerts_ou['matches_analyzed_home'] >= 3) &
-        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2),  
+        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2) &
+        (df_alerts_ou['minute'] >= 45) 
+        ,  
         "Home second half avg goals > 1.5"
     ),
     (
         (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
-        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
+        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2) &
+        (df_alerts_ou['minute'] >= 45), 
         "Away second half avg goals > 1.5"
-    ),
-    
-    ( #### Goals > 1.5 first half
-        (df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.3) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3) &
-        (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2),  
-        "Home first half avg goals > 1.3"
-    ),
-    (
-        (df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.3) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3) &
-        (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
-        "Away first half avg goals > 1.3"
-    ),
-    (
-        (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
-        (df_alerts_ou['matches_analyzed_away'] >= 3) &
-        (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
-        (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
-        "Bet Over Away"
-    ),
-    (
-        (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
-        (df_alerts_ou['matches_analyzed_home'] >= 3) &
-        (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
-        (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
-        "Bet Over Home"
-    ),
+    )
+    # ( #### Goals > 1.5 first half
+    #     (df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.3) &
+    #     (df_alerts_ou['matches_analyzed_home'] >= 3) &
+    #     (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2),  
+    #     "Home first half avg goals > 1.3"
+    # ),
+    # (
+    #     (df_alerts_ou['goals_first_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.3) &
+    #     (df_alerts_ou['matches_analyzed_away'] >= 3) &
+    #     (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2),
+    #     "Away first half avg goals > 1.3"
+    # )
+    # (
+    #     (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
+    #     (df_alerts_ou['matches_analyzed_away'] >= 3) &
+    #     (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
+    #     (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
+    #     "Bet Over Away"
+    # ),
+    # (
+    #     (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
+    #     (df_alerts_ou['matches_analyzed_home'] >= 3) &
+    #     (df_alerts_ou['hh_value'].isin(['-0.5', '0.5', '-0.75', '0.75'])) &
+    #     (df_alerts_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75', '4.50', '4.75'])),
+    #     "Bet Over Home"
+    # ),
 ]
 
 # Start with empty comment column
