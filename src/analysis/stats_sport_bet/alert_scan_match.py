@@ -293,7 +293,7 @@ conditions = [
         (df_alerts_ou['goals_second_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.5) &
         (df_alerts_ou['matches_analyzed_home'] >= 3) &
         (df_alerts_ou['losses_away'] >= df_alerts_ou['matches_analyzed_away'] - 2) &
-        (df_alerts_ou['minute'] >= 45) 
+        (df_alerts_ou['minute'] >= 65) 
         ,  
         "Home second half avg goals > 1.5"
     ),
@@ -301,7 +301,7 @@ conditions = [
         (df_alerts_ou['goals_second_half_away'] >= df_alerts_ou['matches_analyzed_away'] * 1.5) &
         (df_alerts_ou['matches_analyzed_away'] >= 3) &
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2) &
-        (df_alerts_ou['minute'] >= 45), 
+        (df_alerts_ou['minute'] >= 65), 
         "Away second half avg goals > 1.5"
     )
     # ( #### Goals > 1.5 first half
