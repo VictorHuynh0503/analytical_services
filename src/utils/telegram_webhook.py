@@ -59,6 +59,32 @@ async def webhook(request: Request):
             send_message(chat_id, "✅ Flow 'alert_scan_match' started!")
         except Exception as e:
             send_message(chat_id, f"❌ Error: {e}")
+    
+    elif text.startswith("/runflow"):
+        parts = text.split(" ", 1)
+        if len(parts) == 2:
+            team_name = parts[1].strip()
+        else:
+            team_name = None
+            
+        cmd = [
+            "/root/selenium-env/bin/python",
+            "/root/analytical_services/src/analysis/stats_sport_bet/alert_scan_match_search_bet.py"
+        ]
+        if team_name:
+            cmd.append(team_name)
+
+        try:
+            subprocess.Popen(cmd)
+        except Exception as e:
+            send_message(chat_id, f"❌ Error: {e}")
+
+        if team_name:
+            send_message(chat_id, f"✅ Flow started for team '{team_name}'")
+        else:
+            send_message(chat_id, "✅ Flow started for ALL teams")
+
+
 
     elif text.startswith("/help"):
         send_message(chat_id, "Commands:\n/runflow alert_scan_match - Start the flow")
