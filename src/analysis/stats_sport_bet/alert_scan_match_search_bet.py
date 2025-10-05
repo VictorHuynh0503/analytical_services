@@ -107,7 +107,7 @@ print("Currently historical match" , df_final)
 from hook.telegram_v2 import send_telegram_message
 
 token="1200942736:AAEG8y9qyJ7aHefUm4vt_xKqkNBxfKd3qCc"
-chat_id = "@vihuynh_alert"
+chat_id = "@Victor_Trading_HL"
 
 ##### DF_UNDER
 df_tele = df_final[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
