@@ -64,19 +64,21 @@ async def webhook(request: Request):
 
     if text.startswith("/runflow"):
         parts = text.split()
-        if len(parts) >= 2:
-            script_name = parts[1]
-            arg = parts[2] if len(parts) > 2 else None
-            try:
-                run_script(script_name, arg)
-                msg = f"✅ Flow '{script_name}' started"
-                if arg:
-                    msg += f" with argument '{arg}'"
-                send_message(chat_id, msg)
-            except Exception as e:
-                send_message(chat_id, f"❌ Error: {e}")
-        else:
-            send_message(chat_id, "⚠️ Usage: /runflow <script_name> [arg]")
+        command = parts[0].split("@")[0]  # remove @BotName if present
+        if command == "/runflow":
+            if len(parts) >= 2:
+                script_name = parts[1]
+                arg = parts[2] if len(parts) > 2 else None
+                try:
+                    run_script(script_name, arg)
+                    msg = f"✅ Flow '{script_name}' started"
+                    if arg:
+                        msg += f" with argument '{arg}'"
+                    send_message(chat_id, msg)
+                except Exception as e:
+                    send_message(chat_id, f"❌ Error: {e}")
+            else:
+                send_message(chat_id, "⚠️ Usage: /runflow <script_name> [arg]")
 
     elif text.startswith("/help"):
         commands = "\n".join([f"/runflow {k} [arg]" for k in SCRIPTS.keys()])
