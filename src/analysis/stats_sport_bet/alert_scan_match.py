@@ -34,6 +34,7 @@ from src.analysis.stats_sport_bet.stats_score_transition import parse_odds_colum
 from src.analysis.stats_sport_bet.stats_last_5_perf import match_stats
 from src.analysis.stats_sport_bet.stats_bet_odd import extract_goal_events_with_preodds
 from src.analysis.stats_sport_bet.stats_score_transition import parse_match_name
+from src.analysis.stats_sport_bet.stats_first_bet_odds import get_first_bet_odds
 
 # resp = requests.post("http://165.232.188.235:8000/query/log",
 #                     json={"sql": f"{sql}"})
@@ -200,6 +201,9 @@ df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
+df_first_bet = get_first_bet_odds(df_to_stats)
+df_fisrt_bet_parsed = parse_odds_columns(df_first_bet)
+df_alerts_ou = df_alerts_ou.merge(df_fisrt_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
 
 # Define conditions with labels
 conditions = [
@@ -303,7 +307,38 @@ conditions = [
         (df_alerts_ou['losses_home'] >= df_alerts_ou['matches_analyzed_home'] - 2) &
         (df_alerts_ou['minute'] >= 65), 
         "Away second half avg goals > 1.5"
+    ),
+    
+    ( #### Goals > 1.5 second half
+        (df_alerts_ou['line_value'].isin([3, 3.25, 3.75, 4])) &
+        (df_alerts_ou['line_value_first_odd'].isin([2.25, 3.25])) &
+        (
+            (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])
+            & df_alerts_ou['hh_value_first_odd'].isin([-0.5, -0.75, -1, -1.25])
+            ) |
+            (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])          
+            & df_alerts_ou['hh_value_first_odd'].isin([0.5, 0.75, 1, 1.25])
+            ) 
+        ) &
+        (df_alerts_ou['minute'] >= 25),  
+        "BET Under - Handicap Over attain target"
+    ),
+    (
+        (df_alerts_ou['line_value'].isin([1.75, 2, 2.25])) &
+        (df_alerts_ou['line_value_first_odd'].isin([2.25, 2.75, 3.25])) &
+        (
+            (df_alerts_ou['score'].isin(['1-0', '1-1'])
+            & df_alerts_ou['hh_value_first_odd'].isin([-0.5, -0.75, -1, -1.25])
+            ) |
+            (df_alerts_ou['score'].isin(['0-1', '1-1'])          
+            & df_alerts_ou['hh_value_first_odd'].isin([0.5, 0.75, 1, 1.25])
+            ) 
+        )   &
+        (df_alerts_ou['minute'] >= 60),  
+        "BET Under - Until Second Half Time has goal"
     )
+    
+    
     # ( #### Goals > 1.5 first half
     #     (df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.3) &
     #     (df_alerts_ou['matches_analyzed_home'] >= 3) &
