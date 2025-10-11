@@ -19,6 +19,7 @@ team_name = sys.argv[1] if len(sys.argv) > 1 else None
 
 print(f"Team name: {team_name}")
 
+
 sql =     f"""
    WITH ranked AS (
     SELECT *,
@@ -34,6 +35,26 @@ sql =     f"""
     AND (split_part(match_name, '-', 1) LIKE '%{team_name}%' OR split_part(match_name, '-', 2) LIKE '%{team_name}%')
 ;
 """
+
+sql_all = f"""
+   WITH ranked AS (
+    SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY id ORDER BY run_time DESC) AS rn,
+            now()::timestamp as current_now
+    FROM "188bet_log"
+    WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '1.5 hours'
+         AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
+    )
+    SELECT *
+    FROM ranked
+    WHERE rn = 1 
+;
+"""
+
+if team_name == 'all':
+    sql = sql_all
+else:
+    sql = sql    
 
 from src.analysis.stats_sport_bet.stats_score_transition import convert_bet_odds
 from src.analysis.stats_sport_bet.stats_score_transition import parse_odds_columns
@@ -88,6 +109,17 @@ WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '8 hours'
 AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
 AND (split_part(match_name, '-', 1) LIKE '%{team_name}%' OR split_part(match_name, '-', 2) LIKE '%{team_name}%')
 """
+
+sql_stats_all =  f"""
+SELECT * FROM "188bet_log" 
+WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '8 hours'
+AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
+"""
+
+if team_name == 'all':
+    sql_stats = sql_stats_all
+else:
+    sql_stats = sql_stats  
 
 resp = requests.post("http://165.232.188.235:8000/query/log",
                     json={"sql": f"{sql_stats}"})

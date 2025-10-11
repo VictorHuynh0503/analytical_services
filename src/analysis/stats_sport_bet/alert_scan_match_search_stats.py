@@ -24,16 +24,34 @@ sql =     f"""
     SELECT *,
             ROW_NUMBER() OVER (PARTITION BY id ORDER BY run_time DESC) AS rn,
             now()::timestamp as current_now
-    FROM "188bet_log"
+    FROM "188bet_stats_first_odd"
     WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '1.5 hours'
          AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
     )
     SELECT *
     FROM ranked
-    WHERE rn = 1 
+    WHERE 1=1
+    AND rn = 1
     AND (split_part(match_name, '-', 1) LIKE '%{team_name}%' OR split_part(match_name, '-', 2) LIKE '%{team_name}%')
 ;
 """
+
+from dotenv import load_dotenv
+load_dotenv()  # This loads variables from .env into environment
+
+sys_path = os.getenv("sys_path")
+print(sys_path)
+os.chdir(sys_path)
+sys.path.append(sys_path)
+
+from storage import duckdb_reader as dr 
+
+df = dr.read_from_duckdb(
+    db_path="log_data/188bet_stats_first_odd.duckdb",
+    query = sql
+)
+
+print(f"Data fetched: {df.shape[0]} rows")    
 
 from src.analysis.stats_sport_bet.stats_score_transition import convert_bet_odds
 from src.analysis.stats_sport_bet.stats_score_transition import parse_odds_columns
@@ -42,24 +60,7 @@ from src.analysis.stats_sport_bet.stats_bet_odd import extract_goal_events_with_
 from src.analysis.stats_sport_bet.stats_score_transition import parse_match_name
 from src.analysis.stats_sport_bet.stats_first_bet_odds import get_first_bet_odds
 
-
-# resp = requests.post("http://165.232.188.235:8000/query/log",
-#                     json={"sql": f"{sql}"})
-# ##print(resp.json())
-
-# data = resp.json()
-
-# df = pd.DataFrame(data["rows"], columns=data["columns"])
-
-
-resp = requests.post("http://165.232.188.235:8000/query/log",
-                    json={"sql": f"{sql}"})
-##print(resp.json())
-data = resp.json()
-df = pd.DataFrame(data["rows"], columns=data["columns"])
-df_parsed = parse_odds_columns(df)
-df_parsed['home_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[0])
-df_parsed['away_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[1])
+df_parsed = df.copy()
 
 print(f"Data fetched: {df_parsed.shape[0]} rows")
 
@@ -82,27 +83,6 @@ df_parsed = df_parsed[(df_parsed["minute"].isna()) | (df_parsed["minute"] < 85)]
 
 print("Currently found match" , df_parsed.shape[0])
 
-sql_stats =  f"""
-SELECT * FROM "188bet_log" 
-WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '8 hours'
-AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
-AND (split_part(match_name, '-', 1) LIKE '%{team_name}%' OR split_part(match_name, '-', 2) LIKE '%{team_name}%')
-"""
-
-resp = requests.post("http://165.232.188.235:8000/query/log",
-                    json={"sql": f"{sql_stats}"})
-data = resp.json()
-try:
-    df_to_stats = pd.DataFrame(data["rows"], columns=data["columns"])
-except Exception as e:
-    df_to_stats = pd.DataFrame()
-
-print(df_to_stats.shape[0])
-
-df_first_bet = get_first_bet_odds(df_to_stats)
-df_final = df_first_bet.merge(df_parsed[['id']], on='id', how='inner')
-
-print("Currently historical match" , df_final)
 
 from hook.telegram_v2 import send_telegram_message
 
@@ -110,10 +90,20 @@ token="1200942736:AAEG8y9qyJ7aHefUm4vt_xKqkNBxfKd3qCc"
 chat_id = "@Victor_Trading_HL"
 
 ##### DF_UNDER
-df_tele = df_final[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+df_tele = df_parsed[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp'
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 
+       'from_score', 'to_score',
+       'total_for_fromscore_line', 'success_rate_fromscore',
+       'matches_analyzed_home', 
+       'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
+       'matches_analyzed_away',
+       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
+        'hh_value_first_odd', 'rate_hh_first_odd',
+       'rate_ah_first_odd', 'line_value_first_odd', 'rate_over_first_odd',
+       'rate_under_first_odd'   
        ]]
+
 
 chunk_size = 10
 df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]

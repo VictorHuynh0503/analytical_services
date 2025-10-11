@@ -147,7 +147,7 @@ ou_condition = (
     # (df_join_ou['success_rate_fromscore'] >= 0.3) &
     (df_join_ou['rate_over'].astype(float) >= 0.88)
 )| (
-    (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-0', '0-2', '2-1', '1-2', '2-3', '3-2', '2-2', '1-3', '3-1', '4-1', '1-4', '3-3', '0-3', '3-0'])) 
+    (df_join_ou['score'].isin(['0-0','1-0', '0-1', '1-1', '2-0', '0-2', '2-1', '1-2', '2-3', '3-2', '2-2', '1-3', '3-1', '4-1', '1-4', '3-3', '0-3', '3-0'])) 
        
     
     # (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75', '4.50', '4.75'])) 
@@ -167,7 +167,7 @@ all_team = df_stats['home_name'].tolist() + df_stats['away_name'].tolist()
 sql_stats =  f"""
 SELECT * FROM "188bet_log" 
 WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '2200 hours'
-AND "run_time"::TIMESTAMP <= (NOW()::timestamp - INTERVAL '7 hours')
+AND "run_time"::TIMESTAMP <= (NOW()::timestamp - INTERVAL '1.5 hours')
 AND (split_part(match_name, '-', 1) IN {all_team} OR split_part(match_name, '-', 2) IN {all_team})
 """
 
@@ -202,8 +202,43 @@ df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
 df_first_bet = get_first_bet_odds(df_to_stats)
-df_fisrt_bet_parsed = parse_odds_columns(df_first_bet)
-df_alerts_ou = df_alerts_ou.merge(df_fisrt_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
+df_first_bet_parsed = parse_odds_columns(df_first_bet)
+df_alerts_ou = df_alerts_ou.merge(df_first_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
+
+
+df_to_process = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+       'current_time', 'run_time', 'match_part', 'time_difference',
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'rn', 'current_now', 'rate_hh',
+       'rate_ah', 'hh', 'ah', 'hh_value', 'ah_value', 'rate_over',
+       'rate_under', 'line', 'line_value', 'home_name', 'away_name', 'minute',
+       'country', 'league', 'pre_line', 'from_score', 'to_score', 'count',
+       'total_for_line', 'success_rate', 'total_for_fromscore_line',
+       'success_rate_fromscore', 'team_home', 'matches_analyzed_home',
+       'wins_home', 'losses_home', 'draws_home', 'goals_first_half_home',
+       'goals_second_half_home',  'team_away',
+       'matches_analyzed_away', 'wins_away', 'losses_away', 'draws_away',
+       'goals_first_half_away', 'goals_second_half_away',
+       'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
+       'line_value_first_odd', 'rate_over_first_odd', 'rate_under_first_odd']]
+
+from storage import duckdb_logger as dl 
+
+list_data = df_to_process.to_dict(orient="records")
+
+create_path = os.getenv("log_data_path")
+os.makedirs(os.path.dirname(create_path), exist_ok=True)
+
+table_schema = dl.df_to_duckdb_schema(df_to_process)
+
+
+dl.log_to_duckdb(
+    db_path=f"{create_path}/188bet_stats_first_odd.duckdb",
+    table_name="188bet_stats_first_odd",
+    schema=table_schema,
+    data=list_data,
+    mode="upsert",
+    upsert_keys=["id", "run_time"]
+)
 
 # Define conditions with labels
 conditions = [
