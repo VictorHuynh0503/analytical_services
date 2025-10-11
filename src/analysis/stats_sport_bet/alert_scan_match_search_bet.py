@@ -132,7 +132,7 @@ except Exception as e:
 print(df_to_stats.shape[0])
 
 df_first_bet = get_first_bet_odds(df_to_stats)
-df_final = df_first_bet.merge(df_parsed[['id']], on='id', how='inner')
+df_final = df_first_bet.merge(df_parsed[['id', 'score']], on='id', how='inner', suffixes=('', '_current'))
 
 print("Currently historical match" , df_final)
 
@@ -144,7 +144,7 @@ chat_id = "@Victor_Trading_HL"
 ##### DF_UNDER
 df_tele = df_final[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp'
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'score_current'
        ]]
 
 chunk_size = 10
