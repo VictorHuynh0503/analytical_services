@@ -51,7 +51,7 @@ sql_all = f"""
 ;
 """
 
-if team_name == 'all':
+if team_name == 'all' or team_name == 'allH2':
     sql = sql_all
 else:
     sql = sql    
@@ -101,6 +101,12 @@ df_parsed["minute"] = df_parsed["current_time"].apply(parse_minute)
 # Filter: keep rows where minute < 90 OR is NaN (empty)
 df_parsed = df_parsed[(df_parsed["minute"].isna()) | (df_parsed["minute"] < 85)]
 
+
+if team_name == 'allH2':
+    df_parsed = df_parsed[df_parsed["minute"] > 55] 
+else:
+    df_parsed
+
 print("Currently found match" , df_parsed.shape[0])
 
 sql_stats =  f"""
@@ -116,7 +122,7 @@ WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '8 hours'
 AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
 """
 
-if team_name == 'all':
+if team_name == 'all' or team_name == 'allH2':
     sql_stats = sql_stats_all
 else:
     sql_stats = sql_stats  
