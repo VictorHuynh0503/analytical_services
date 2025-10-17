@@ -201,6 +201,23 @@ df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
+
+sql_first_bet =  f"""
+SELECT * FROM "188bet_log" 
+WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '8 hours'
+AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
+AND (split_part(match_name, '-', 1) IN {all_team} OR split_part(match_name, '-', 2) IN {all_team})
+"""
+resp = requests.post("http://165.232.188.235:8000/query/log",
+                    json={"sql": f"{sql_first_bet}"})
+data = resp.json()
+try:
+    df_to_stats = pd.DataFrame(data["rows"], columns=data["columns"])
+except Exception as e:
+    df_to_stats = pd.DataFrame()
+
+print(df_to_stats.shape[0])
+
 df_first_bet = get_first_bet_odds(df_to_stats)
 df_first_bet_parsed = parse_odds_columns(df_first_bet)
 df_alerts_ou = df_alerts_ou.merge(df_first_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
@@ -371,6 +388,21 @@ conditions = [
         )   &
         (df_alerts_ou['minute'] >= 60),  
         "BET Under - Until Second Half Time has goal"
+    ),
+    (
+        (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
+        (
+            (df_alerts_ou['score'].isin(['0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])
+            & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25, -0.5, -1, -1.25]) 
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float)
+            ) |
+            (df_alerts_ou['score'].isin(['1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])          
+            & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25, 0.5, 1, 1.25])
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float)
+            ) 
+        )   &
+        (df_alerts_ou['minute'] >= 50),  
+        "BET Team Find Draw Match"
     )
     
     
@@ -442,39 +474,65 @@ df_alerts_ou = df_alerts_ou[df_alerts_ou["comment"].notna()]
 
 # df_alerts_ou = df_alerts_ou[stats_condition]
 
-sql_realtime = """
-   WITH ranked AS (
-    SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY id ORDER BY run_time DESC) AS rn,
-            now()::timestamp as current_now
-    FROM "188bet_log"
-    WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '1.5 hours'
-         AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
-    )
-    SELECT *
-    FROM ranked;
-"""
+# sql_realtime = """
+#    WITH ranked AS (
+#     SELECT *,
+#             ROW_NUMBER() OVER (PARTITION BY id ORDER BY run_time DESC) AS rn,
+#             now()::timestamp as current_now
+#     FROM "188bet_log"
+#     WHERE "run_time"::TIMESTAMP >= (NOW()::timestamp) - INTERVAL '1.5 hours'
+#          AND "run_time"::TIMESTAMP <= (NOW()::timestamp + INTERVAL '7 hours')
+#     )
+#     SELECT *
+#     FROM ranked;
+# """
 
-resp = requests.post("http://165.232.188.235:8000/query/log",
-                    json={"sql": f"{sql_realtime}"})
-data = resp.json()
-try:
-    df_realtime = pd.DataFrame(data["rows"], columns=data["columns"])
-except Exception as e:
-    df_realtime = pd.DataFrame()
+# resp = requests.post("http://165.232.188.235:8000/query/log",
+#                     json={"sql": f"{sql_realtime}"})
+# data = resp.json()
+# try:
+#     df_realtime = pd.DataFrame(data["rows"], columns=data["columns"])
+# except Exception as e:
+#     df_realtime = pd.DataFrame()
 
-realtime_match = pd.DataFrame()
+# realtime_match = pd.DataFrame()
 
-for i in df_stats['match_name'].tolist():
-    # print(i)
-    extract_goals = extract_goal_events_with_preodds(df_realtime, i)
-    realtime_match = pd.concat([extract_goals, realtime_match], axis=0, ignore_index=True)
+# for i in df_stats['match_name'].tolist():
+#     # print(i)
+#     extract_goals = extract_goal_events_with_preodds(df_realtime, i)
+#     realtime_match = pd.concat([extract_goals, realtime_match], axis=0, ignore_index=True)
 
 
-all_match_within_signals = df_alerts_hc['match_name'].tolist() + df_alerts_ou['match_name'].tolist()
+# all_match_within_signals = df_alerts_hc['match_name'].tolist() + df_alerts_ou['match_name'].tolist()
 
-df_to_inform_realtime = realtime_match[realtime_match['match_name'].isin(all_match_within_signals)]
-df_to_inform_realtime = df_to_inform_realtime.sort_values(by=['match_name', 'goal_time'], ascending=[0, 1])
+# df_to_inform_realtime = realtime_match[realtime_match['match_name'].isin(all_match_within_signals)]
+# df_to_inform_realtime = df_to_inform_realtime.sort_values(by=['match_name', 'goal_time'], ascending=[0, 1])
+
+################### Use for Avoid Running Alert Many Times
+
+df_to_alert_log = df_alerts_ou.copy()
+df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
+df_to_alert_log.drop(columns=['last_matches_home', 'last_matches_away'], inplace=True, errors='ignore')
+
+from storage import duckdb_logger as dl 
+
+list_data = df_to_alert_log.to_dict(orient="records")
+
+create_path = os.getenv("log_data_path")
+os.makedirs(os.path.dirname(create_path), exist_ok=True)
+
+table_schema = dl.df_to_duckdb_schema(df_to_alert_log)
+
+
+dl.log_to_duckdb(
+    db_path=f"{create_path}/188bet_log_alerts.duckdb",
+    table_name="188bet_log_alerts",
+    schema=table_schema,
+    data=list_data,
+    mode="upsert",
+    upsert_keys=["id", "key_alert"]
+)
+
 
 from hook.telegram_v2 import send_telegram_message
 
@@ -510,8 +568,19 @@ for i in range(0, len(df_list)):
         send_telegram_message(item_tele, token, chat_id)
 
 
+df_alerts_copy =  df_to_alert_log.copy()
+from storage import duckdb_reader as dr 
+
+df_alert_hist = dr.read_from_duckdb(
+    db_path="log_data/188bet_log_alerts.duckdb",
+    query = """
+    SELECT DISTINCT id, key_alert FROM "188bet_log_alerts"
+    """
+)
+df_alerts_finalized = df_alerts_copy[~df_alerts_copy['key_alert'].isin(df_alert_hist['key_alert'])]
+
 ##### DF_UNDER
-df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+df_tele = df_alerts_finalized[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
        'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
        'total_for_fromscore_line', 'success_rate_fromscore',

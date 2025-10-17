@@ -119,7 +119,7 @@ top_10_each_industry = []
 
 for i in list_of_industry:
     df_selected = df_final[df_final['industry'].str.contains(i, na=False)]
-    ticker_selected = get_top_capitalization(df_selected, top_n=10)
+    ticker_selected = get_top_capitalization(df_selected, top_n=5)
     print(f"Top 10 for industry {i}: {ticker_selected}")
     top_10_each_industry.extend(ticker_selected)
 
