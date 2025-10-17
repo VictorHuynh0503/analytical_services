@@ -508,30 +508,6 @@ df_alerts_ou = df_alerts_ou[df_alerts_ou["comment"].notna()]
 # df_to_inform_realtime = realtime_match[realtime_match['match_name'].isin(all_match_within_signals)]
 # df_to_inform_realtime = df_to_inform_realtime.sort_values(by=['match_name', 'goal_time'], ascending=[0, 1])
 
-################### Use for Avoid Running Alert Many Times
-
-df_to_alert_log = df_alerts_ou.copy()
-df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
-df_to_alert_log.drop(columns=['last_matches_home', 'last_matches_away'], inplace=True, errors='ignore')
-
-from storage import duckdb_logger as dl 
-
-list_data = df_to_alert_log.to_dict(orient="records")
-
-create_path = os.getenv("log_data_path")
-os.makedirs(os.path.dirname(create_path), exist_ok=True)
-
-table_schema = dl.df_to_duckdb_schema(df_to_alert_log)
-
-
-dl.log_to_duckdb(
-    db_path=f"{create_path}/188bet_log_alerts.duckdb",
-    table_name="188bet_log_alerts",
-    schema=table_schema,
-    data=list_data,
-    mode="upsert",
-    upsert_keys=["id", "key_alert"]
-)
 
 
 from hook.telegram_v2 import send_telegram_message
@@ -567,7 +543,8 @@ for i in range(0, len(df_list)):
     else:
         send_telegram_message(item_tele, token, chat_id)
 
-
+df_to_alert_log = df_alerts_ou.copy()
+df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
 df_alerts_copy =  df_to_alert_log.copy()
 from storage import duckdb_reader as dr 
 
@@ -607,6 +584,32 @@ for i in range(0, len(df_list)):
         pass
     else:
         send_telegram_message(item_tele, token, chat_id)
+
+
+################### Use for Avoid Running Alert Many Times
+
+df_to_alert_log = df_alerts_ou.copy()
+df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
+df_to_alert_log.drop(columns=['last_matches_home', 'last_matches_away'], inplace=True, errors='ignore')
+
+from storage import duckdb_logger as dl 
+
+list_data = df_to_alert_log.to_dict(orient="records")
+
+create_path = os.getenv("log_data_path")
+os.makedirs(os.path.dirname(create_path), exist_ok=True)
+
+table_schema = dl.df_to_duckdb_schema(df_to_alert_log)
+
+
+dl.log_to_duckdb(
+    db_path=f"{create_path}/188bet_log_alerts.duckdb",
+    table_name="188bet_log_alerts",
+    schema=table_schema,
+    data=list_data,
+    mode="upsert",
+    upsert_keys=["id", "key_alert"]
+)
 
 
 
