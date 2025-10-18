@@ -403,6 +403,21 @@ conditions = [
         )   &
         (df_alerts_ou['minute'] >= 50),  
         "BET Team Find Draw Match"
+    ),
+    (
+        (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
+        (
+            (df_alerts_ou['score'].isin(['0-0', '1-1', '2-2'])
+            & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25]) 
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float)
+            ) |
+            (df_alerts_ou['score'].isin(['0-0', '1-1', '2-2'])          
+            & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25])
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float)
+            ) 
+        )   &
+        (df_alerts_ou['minute'] >= 5),  
+        "BET Team Early High Rate of Winning"
     )
     
     
@@ -565,7 +580,9 @@ df_tele = df_alerts_finalized[['id', 'cid', 'l', 'n', 'match_name', 'score', 'ma
        'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
        'matches_analyzed_away',
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
-       'comment'
+       'comment', 
+       'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
+       'line_value_first_odd'
        ]]
 
 chunk_size = 10
