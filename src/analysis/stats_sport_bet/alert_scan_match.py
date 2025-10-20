@@ -416,7 +416,7 @@ conditions = [
             & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float) * 0.95
             ) 
         )   &
-        (df_alerts_ou['minute'] >= 10),  
+        (df_alerts_ou['minute'] >= 50),  
         "BET Team With Higher Rate First Odd"
     )
     
