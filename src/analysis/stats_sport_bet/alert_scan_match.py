@@ -403,22 +403,22 @@ conditions = [
         )   &
         (df_alerts_ou['minute'] >= 50),  
         "BET Team Find Draw Match"
+    ), 
+    (
+        (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
+        (
+            (df_alerts_ou['score'].isin(['0-0', '0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])
+            & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25, -0.5, -1, -1.25, -1.5]) 
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float) * 1.05
+            ) |
+            (df_alerts_ou['score'].isin(['0-0', '1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])          
+            & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25, 0.5, 1, 1.25, 1.5])
+            & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float) * 0.95
+            ) 
+        )   &
+        (df_alerts_ou['minute'] >= 10),  
+        "BET Team With Higher Rate First Odd"
     )
-    # (
-    #     (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
-    #     (
-    #         (df_alerts_ou['score'].isin(['0-0', '1-1', '2-2'])
-    #         & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25]) 
-    #         & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float)
-    #         ) |
-    #         (df_alerts_ou['score'].isin(['0-0', '1-1', '2-2'])          
-    #         & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25])
-    #         & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float)
-    #         ) 
-    #     )   &
-    #     (df_alerts_ou['minute'] >= 25),  
-    #     "BET Team Early High Rate of Winning"
-    # )
     
     
     # ( #### Goals > 1.5 first half
