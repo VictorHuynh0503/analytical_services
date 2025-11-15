@@ -27,6 +27,9 @@ df_nganh = pd.read_csv(os.getenv("nganh"))
 df_all = pd.read_csv(os.getenv("tat_ca_ma"))
 
 def standardize_df(df):
+    
+    
+    
     df["Date"] = pd.to_datetime(df["Datetime"]).dt.date
     df = df[df["Date"] >= date(2024, 1, 1)]
     # df["Datetime"] = pd.to_datetime(df["Datetime"])  # ensure datetime format
@@ -114,12 +117,13 @@ list_of_industry = ['personal__household_goods', 'chemicals', 'food__beverage',
 df_bank = df_final[df_final['industry'].str.contains('banks', na=False)]
 df_ins = df_final[df_final['industry'].str.contains('industrial_goods__services', na=False)]
 
+df_ins_top_20 = get_top_capitalization(df_ins, top_n=20)
 
 top_10_each_industry = []
 
 for i in list_of_industry:
     df_selected = df_final[df_final['industry'].str.contains(i, na=False)]
-    ticker_selected = get_top_capitalization(df_selected, top_n=5)
+    ticker_selected = get_top_capitalization(df_selected, top_n=10)
     print(f"Top 10 for industry {i}: {ticker_selected}")
     top_10_each_industry.extend(ticker_selected)
 

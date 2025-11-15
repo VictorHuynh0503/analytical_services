@@ -1,5 +1,5 @@
 import pandas as pd
-
+import numpy as np
 # --- Parsing helpers ---
 def parse_match_name(match_name: str):
     """Parse the match name into home and away teams."""
@@ -191,7 +191,31 @@ if __name__ == "__main__":
         query = sql
     )
     
-   ## df.rename(columns={'l': "country", "n": "league"}, inplace=True)
+    from src.analysis.stats_sport_bet.stats_score_transition import convert_bet_odds
+    from src.analysis.stats_sport_bet.stats_score_transition import parse_odds_columns
+    from src.analysis.stats_sport_bet.stats_last_5_perf import match_stats
+    from src.analysis.stats_sport_bet.stats_bet_odd import extract_goal_events_with_preodds
+    from src.analysis.stats_sport_bet.stats_score_transition import parse_match_name
+    from src.analysis.stats_sport_bet.stats_first_bet_odds import get_first_bet_odds
+
+    df_parsed = parse_odds_columns(df)
+    df_parsed['home_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[0])
+    df_parsed['away_name'] = df_parsed['match_name'].apply(lambda x: parse_match_name(x)[1])
+
+    # Function to parse minute
+    def parse_minute(val):
+        if val == "[]" or pd.isna(val):
+            return np.nan  # keep track of empty
+        try:
+            # remove brackets and split mm:ss
+            minute, _ = val.strip("[]").split(":")
+            return int(minute)
+        except Exception:
+            return np.nan
+
+    # Create new column with parsed minute
+    df_parsed["minute"] = df_parsed["current_time"].apply(parse_minute)
+
     
     team = "Red Bull Salzburg"
     stats = betting_stats_by_league(df)

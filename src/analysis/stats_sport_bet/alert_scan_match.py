@@ -35,6 +35,7 @@ from src.analysis.stats_sport_bet.stats_last_5_perf import match_stats
 from src.analysis.stats_sport_bet.stats_bet_odd import extract_goal_events_with_preodds
 from src.analysis.stats_sport_bet.stats_score_transition import parse_match_name
 from src.analysis.stats_sport_bet.stats_first_bet_odds import get_first_bet_odds
+from src.analysis.stats_sport_bet.stats_score_records import build_score_timeline_df
 
 # resp = requests.post("http://165.232.188.235:8000/query/log",
 #                     json={"sql": f"{sql}"})
@@ -220,7 +221,15 @@ print(df_to_stats.shape[0])
 
 df_first_bet = get_first_bet_odds(df_to_stats)
 df_first_bet_parsed = parse_odds_columns(df_first_bet)
+    
+
+    # Create new column with parsed minute
+df_to_stats["minute"] = df_to_stats["current_time"].apply(parse_minute)
+
+df_score_records = build_score_timeline_df(df_to_stats)
+
 df_alerts_ou = df_alerts_ou.merge(df_first_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
+df_alerts_ou = df_alerts_ou.merge(df_score_records[['id', 'score_timeline']], on='id', how='left', suffixes=('', '_score_record'))
 
 
 df_to_process = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
@@ -237,6 +246,7 @@ df_to_process = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'mat
        'goals_first_half_away', 'goals_second_half_away',
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
        'line_value_first_odd', 'rate_over_first_odd', 'rate_under_first_odd']]
+
 
 from storage import duckdb_logger as dl 
 
@@ -418,8 +428,12 @@ conditions = [
         )   &
         (df_alerts_ou['minute'] >= 50),  
         "BET Team With Higher Rate First Odd"
+    ),
+    (    
+        (df_alerts_ou['minute'] >= 58) & 
+        (df_alerts_ou['minute'] <=85),  
+        "ALERT - AFTER 60 MINS"
     )
-    
     
     # ( #### Goals > 1.5 first half
     #     (df_alerts_ou['goals_first_half_home'] >= df_alerts_ou['matches_analyzed_home'] * 1.3) &
@@ -582,7 +596,7 @@ df_tele = df_alerts_finalized[['id', 'cid', 'l', 'n', 'match_name', 'score', 'ma
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
        'comment', 
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
-       'line_value_first_odd'
+       'line_value_first_odd', 'score_timeline'
        ]]
 
 chunk_size = 10
