@@ -90,7 +90,7 @@ def get_top_avg_cap(df: pd.DataFrame, top_n=10) -> list:
         df_window.groupby('Ticker')['capitalization']
         .mean()
         .reset_index()
-    )
+    ) 
 
     # Get top 20
     top10 = avg_cap.sort_values('capitalization', ascending=False).head(top_n)
