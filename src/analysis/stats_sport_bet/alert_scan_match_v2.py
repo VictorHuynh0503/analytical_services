@@ -66,8 +66,26 @@ def parse_minute(val):
     except Exception:
         return np.nan
 
+def minute_to_range(minute):
+    """
+    Convert a minute value (int or float) into a 10-minute range label like '0-10', '10-20', ..., '90-100'.
+    """
+    if pd.isna(minute):  # handle NaN safely
+        return None
+
+    # Clamp negative or >100 values if needed
+    if minute < 0:
+        return "<0"
+    elif minute >= 100:
+        return "90-100"
+
+    # Compute range start and end
+    start = int(minute // 10) * 10
+    end = start + 10
+    return f"{start}-{end}"
 # Create new column with parsed minute
 df_parsed["minute"] = df_parsed["current_time"].apply(parse_minute)
+df_parsed["minute_interval"] = df_parsed["minute"].apply(minute_to_range)
 
 # Filter: keep rows where minute < 90 OR is NaN (empty)
 df_parsed = df_parsed[(df_parsed["minute"].isna()) | (df_parsed["minute"] < 85)]
@@ -85,9 +103,37 @@ print(file)
 df_stats_hc = pd.read_excel(file, sheet_name="Handicap Stats")
 df_stats_ou = pd.read_excel(file, sheet_name="OverUnder Stats")
 
+file_agg = os.getenv("betting_agg_stats")
+print(file_agg)
+
+df_stats_agg = pd.read_excel(file_agg, sheet_name="Sheet1")
+
+def group_df(df_stats_agg, group_cols = ["country", "league", "score", "minute_interval", "hh_value", "line_value"], agg_col="ou_result"):
+        # 1. Count each ou_result inside each group
+# 1. Sum event_count for each ou_result inside each group
+    ou_counts = (
+        df_stats_agg.pivot_table(
+            index=group_cols,
+            columns=agg_col,
+            values="event_count",   # <-- use event_count instead of counting rows
+            aggfunc="sum",
+            fill_value=0
+        )
+    )
+    df_stats_agg = df_stats_agg.drop(columns=["ou_result", "hh_result"]).drop_duplicates()
+    df_stats_agg = df_stats_agg.merge(
+        ou_counts,
+        on=["country", "league", "score", "minute_interval", "hh_value", "line_value"],
+        how="left"
+    )
+    df_stats_agg = df_stats_agg.fillna(0)
+    return df_stats_agg
+
+df_grouped_ou = group_df(df_stats_agg)
+df_grouped_hh = group_df(df_stats_agg, agg_col="hh_result")
 
 
-
+# fill NA counts with 0
 #### Merge and filter for alerts
 df_join_hc = df_parsed.merge(
     df_stats_hc,
@@ -128,6 +174,22 @@ df_join_ou = df_parsed.merge(
     left_on=["l", "n", "score", "line_value"],
     right_on=["country", "league", "from_score", "pre_line"]
     #suffixes=('', '_hc')
+)
+
+df_join_ou = df_join_ou.merge(
+    df_grouped_ou,
+    how="left",
+    left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
+    right_on=["country", "league", "score", "line_value", "hh_value", "minute_interval"],
+    suffixes=('', '_ou')
+)
+
+df_join_ou = df_join_ou.merge(
+    df_grouped_ou,
+    how="left",
+    left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
+    right_on=["country", "league", "score", "line_value", "hh_value", "minute_interval"],
+    suffixes=('', '_hh')
 )
 
 ou_condition = (
@@ -248,26 +310,6 @@ df_to_process = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'mat
        'goals_first_half_away', 'goals_second_half_away',
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
        'line_value_first_odd', 'rate_over_first_odd', 'rate_under_first_odd']]
-
-
-from storage import duckdb_logger as dl 
-
-list_data = df_to_process.to_dict(orient="records")
-
-create_path = os.getenv("log_data_path")
-os.makedirs(os.path.dirname(create_path), exist_ok=True)
-
-table_schema = dl.df_to_duckdb_schema(df_to_process)
-
-
-dl.log_to_duckdb(
-    db_path=f"{create_path}/188bet_stats_first_odd.duckdb",
-    table_name="188bet_stats_first_odd",
-    schema=table_schema,
-    data=list_data,
-    mode="upsert",
-    upsert_keys=["id", "run_time"]
-)
 
 # Define conditions with labels
 conditions = [
@@ -574,21 +616,8 @@ for i in range(0, len(df_list)):
     else:
         send_telegram_message(item_tele, token, chat_id)
 
-df_to_alert_log = df_alerts_ou.copy()
-df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
-df_alerts_copy =  df_to_alert_log.copy()
-from storage import duckdb_reader as dr 
-
-df_alert_hist = dr.read_from_duckdb(
-    db_path="log_data/188bet_log_alerts.duckdb",
-    query = """
-    SELECT DISTINCT id, key_alert FROM "188bet_log_alerts"
-    """
-)
-df_alerts_finalized = df_alerts_copy[~df_alerts_copy['key_alert'].isin(df_alert_hist['key_alert'])]
-
 ##### DF_UNDER
-df_tele = df_alerts_finalized[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
+df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
        'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
        'total_for_fromscore_line', 'success_rate_fromscore',
@@ -598,7 +627,11 @@ df_tele = df_alerts_finalized[['id', 'cid', 'l', 'n', 'match_name', 'score', 'ma
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
        'comment', 
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
-       'line_value_first_odd', 'score_timeline'
+       'line_value_first_odd', 'score_timeline', 
+       'event_count', 'draw', 'under_lose', 'under_lose_half',
+       'under_win', 'under_win_half', 
+       'event_count_hh', 'draw_hh', 'under_lose_hh', 'under_lose_half_hh',
+       'under_win_hh', 'under_win_half_hh'
        ]]
 
 chunk_size = 10
@@ -617,76 +650,3 @@ for i in range(0, len(df_list)):
         pass
     else:
         send_telegram_message(item_tele, token, chat_id)
-
-
-################### Use for Avoid Running Alert Many Times
-
-df_to_alert_log = df_alerts_ou.copy()
-df_to_alert_log['key_alert'] = df_to_alert_log['id'] + df_to_alert_log['score'] + df_to_alert_log['comment']
-df_to_alert_log.drop(columns=['last_matches_home', 'last_matches_away'], inplace=True, errors='ignore')
-
-from storage import duckdb_logger as dl 
-
-list_data = df_to_alert_log.to_dict(orient="records")
-
-create_path = os.getenv("log_data_path")
-os.makedirs(os.path.dirname(create_path), exist_ok=True)
-
-table_schema = dl.df_to_duckdb_schema(df_to_alert_log)
-
-
-dl.log_to_duckdb(
-    db_path=f"{create_path}/188bet_log_alerts.duckdb",
-    table_name="188bet_log_alerts",
-    schema=table_schema,
-    data=list_data,
-    mode="upsert",
-    upsert_keys=["id", "key_alert"]
-)
-
-
-
-################### Realtime Match Analysis #################
-
-##### DF_UNDER
-# df_tele = df_to_inform_realtime[['match_name', 'new_score', 'goal_time', 'new_over_under',
-#        'new_handicap', 'pre_score', 'pre_time', 'pre_over_under',
-#        'pre_handicap']]
-
-
-# chunk_size = 10
-# df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
-
-# for i in range(0, len(df_list)):
-#     item_tele = df_list[i]
-    
-#     if item_tele.empty:
-#         print("There's nothing to alert")
-#     # for i in industry:
-#     #     print("Nganh: ", i)
-#     #     df_tele_f = df_tele.loc[df_tele['industry']==i]
-#     #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
-#     #     df_tele_f = df_tele_f.head(5)
-#         pass
-#     else:
-#         send_telegram_message(item_tele, token, chat_id)
-
-
-
-# df_join_hc = df_parsed.merge(
-#     df_stats_hc,
-#     how="left",
-#     left_on=["l", "n", "score", "hh_value"],
-#     right_on=["country", "league", "from_score", "pre_handicap"],
-#     suffixes=('', '_hc')
-# )
-
-
-# results = []
-# for team in df_parsed["team"].unique():
-#     stats = match_stats(df_parsed, team, last_n=5)
-#     results.append(stats)
-
-# # Step 3: Print or process results
-# for res in results:
-#     print(res)
