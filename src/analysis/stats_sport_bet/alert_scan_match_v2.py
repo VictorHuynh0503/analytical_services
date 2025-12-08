@@ -106,7 +106,7 @@ df_stats_ou = pd.read_excel(file, sheet_name="OverUnder Stats")
 file_agg = os.getenv("betting_agg_stats")
 print(file_agg)
 
-df_stats_agg = pd.read_excel(file_agg, sheet_name="Sheet1")
+df_stats_agg = pd.read_csv(file_agg, encoding="latin1")
 
 def group_df(df_stats_agg, group_cols = ["country", "league", "score", "minute_interval", "hh_value", "line_value"], agg_col="ou_result"):
         # 1. Count each ou_result inside each group
@@ -143,40 +143,7 @@ df_join_hc = df_parsed.merge(
     #suffixes=('', '_hc')
 )
 
-hc_condition = (
-    (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['total_for_fromscore_handicap'] <= 50) &
-    (df_join_hc['success_rate_fromscore'] > 0.85)
-) | (
-    (df_join_hc['total_for_fromscore_handicap'] >= 50) & 
-    (df_join_hc['success_rate_fromscore'] >= 0.75)    
-) | (
-    (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['success_rate_fromscore'] >= 0.75)  &
-    (df_join_hc['rate_hh'].astype(float) >= 0.95)  &
-    (df_join_hc['hh_value'].astype(float) <= -0.25)  & (df_join_hc['hh_value'].astype(float) >= -0.5)    
-) | (
-    (df_join_hc['total_for_fromscore_handicap'] >= 10) & 
-    (df_join_hc['success_rate_fromscore'] >= 0.4)  &
-    (df_join_hc['rate_hh'].astype(float) >= 0.90)  &
-    (df_join_hc['score'].isin(['3-0', '0-3', '4-1', '4-1', '3-1', '1-3'])) & 
-    (df_join_hc['hh_value'].isin(['0.25', '-0.25', '0.50', '-0.50']))  
-)
-
-df_alerts_hc = df_join_hc[hc_condition]
-print("################### HANDICAP ALERTS ###################")
-print(df_alerts_hc)
-
-
 df_join_ou = df_parsed.merge(
-    df_stats_ou,
-    how="left",
-    left_on=["l", "n", "score", "line_value"],
-    right_on=["country", "league", "from_score", "pre_line"]
-    #suffixes=('', '_hc')
-)
-
-df_join_ou = df_join_ou.merge(
     df_grouped_ou,
     how="left",
     left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
@@ -185,7 +152,7 @@ df_join_ou = df_join_ou.merge(
 )
 
 df_join_ou = df_join_ou.merge(
-    df_grouped_ou,
+    df_grouped_hh,
     how="left",
     left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
     right_on=["country", "league", "score", "line_value", "hh_value", "minute_interval"],
@@ -193,20 +160,6 @@ df_join_ou = df_join_ou.merge(
 )
 
 ou_condition = (
-    (df_join_ou['total_for_fromscore_line'] >= 10) & 
-    (df_join_ou['total_for_fromscore_line'] <= 50) &
-    (df_join_ou['success_rate_fromscore'] > 0.85)
-) | (
-    (df_join_ou['total_for_fromscore_line'] >= 50) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.75)
-) | (
-    (df_join_ou['total_for_fromscore_line'] >= 20) & 
-    (df_join_ou['success_rate_fromscore'] >= 0.4) &
-    (df_join_ou['score'].isin(['1-0', '0-1', '2-1', '1-2'])) & 
-    (df_join_ou['line_value'].isin(['1.50', '1.75', '3.50', '3.75'])) & 
-    (df_join_ou['hh_value'].isin(['0.25', '-0.25', '-0.50', '0.50'])) &
-    (df_join_ou['rate_over'].astype(float) >= 0.90)
-) | (
     (df_join_ou['score'].isin(['1-0', '0-1', '1-1', '2-1', '1-2', '2-3', '3-2'])) &
     (df_join_ou['line_value'].isin(['1.50', '1.75', '2.50', '2.75', '3.50', '3.75', '4.50', '4.75'])) & 
     # (df_join_ou['success_rate_fromscore'] >= 0.3) &
@@ -260,9 +213,6 @@ for i in all_team:
 
 df1 = pd.DataFrame(data_match_stats)
 
-df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='home_name', right_on='team')
-df_alerts_hc = df_alerts_hc.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
-
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='home_name', right_on='team')
 df_alerts_ou = df_alerts_ou.merge(df1, how='left', left_on='away_name', right_on='team', suffixes=("_home", "_away"))
 
@@ -295,21 +245,6 @@ df_score_records = build_score_timeline_df(df_to_stats)
 df_alerts_ou = df_alerts_ou.merge(df_first_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
 df_alerts_ou = df_alerts_ou.merge(df_score_records[['id', 'score_timeline']], on='id', how='left', suffixes=('', '_score_record'))
 
-
-df_to_process = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
-       'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'rn', 'current_now', 'rate_hh',
-       'rate_ah', 'hh', 'ah', 'hh_value', 'ah_value', 'rate_over',
-       'rate_under', 'line', 'line_value', 'home_name', 'away_name', 'minute',
-       'country', 'league', 'pre_line', 'from_score', 'to_score', 'count',
-       'total_for_line', 'success_rate', 'total_for_fromscore_line',
-       'success_rate_fromscore', 'team_home', 'matches_analyzed_home',
-       'wins_home', 'losses_home', 'draws_home', 'goals_first_half_home',
-       'goals_second_half_home',  'team_away',
-       'matches_analyzed_away', 'wins_away', 'losses_away', 'draws_away',
-       'goals_first_half_away', 'goals_second_half_away',
-       'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
-       'line_value_first_odd', 'rate_over_first_odd', 'rate_under_first_odd']]
 
 # Define conditions with labels
 conditions = [
@@ -474,9 +409,9 @@ conditions = [
         "BET Team With Higher Rate First Odd"
     ),
     (    
-        (df_alerts_ou['minute'] >= 58) & 
+        (df_alerts_ou['minute'] >= 20) & 
         (df_alerts_ou['minute'] <=85),  
-        "ALERT - AFTER 60 MINS"
+        "ALERT - AFTER 20 MINS"
     )
     
     # ( #### Goals > 1.5 first half
@@ -588,39 +523,11 @@ from hook.telegram_v2 import send_telegram_message
 token="1200942736:AAEG8y9qyJ7aHefUm4vt_xKqkNBxfKd3qCc"
 chat_id = "@vihuynh_alert"
 
-##### DF_UNDER
-df_tele = df_alerts_hc[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
-       'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
-       'total_for_fromscore_handicap', 'success_rate_fromscore', 
-       'matches_analyzed_home', 
-       'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
-       'matches_analyzed_away',
-       'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away'
-       ]]
-
-chunk_size = 10
-df_list = [df_tele.iloc[i:i + chunk_size] for i in range(0, len(df_tele), chunk_size)]
-
-for i in range(0, len(df_list)):
-    item_tele = df_list[i]
-    
-    if item_tele.empty:
-        print("There's nothing to alert")
-    # for i in industry:
-    #     print("Nganh: ", i)
-    #     df_tele_f = df_tele.loc[df_tele['industry']==i]
-    #     df_tele_f = df_tele_f.sort_values(by='change_price', ascending=False)
-    #     df_tele_f = df_tele_f.head(5)
-        pass
-    else:
-        send_telegram_message(item_tele, token, chat_id)
 
 ##### DF_UNDER
 df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_time',
        'current_time', 'run_time', 'match_part', 'time_difference',
-       'Bàn Thắng: Trên / Dưới', 'Cược Chấp', 'from_score', 'to_score',
-       'total_for_fromscore_line', 'success_rate_fromscore',
+       'Bàn Thắng: Trên / Dưới', 'Cược Chấp',
        'matches_analyzed_home', 
        'wins_home', 'draws_home', 'goals_first_half_home', 'goals_second_half_home',
        'matches_analyzed_away',
@@ -630,8 +537,8 @@ df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'line_value_first_odd', 'score_timeline', 
        'event_count', 'draw', 'under_lose', 'under_lose_half',
        'under_win', 'under_win_half', 
-       'event_count_hh', 'draw_hh', 'under_lose_hh', 'under_lose_half_hh',
-       'under_win_hh', 'under_win_half_hh'
+       'event_count_hh', 'draw_hh', 'home_lose',
+       'home_lose_half', 'home_win', 'home_win_half'
        ]]
 
 chunk_size = 10
