@@ -535,10 +535,8 @@ df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'comment', 
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
        'line_value_first_odd', 'score_timeline', 
-       'event_count', 'draw', 'under_lose', 'under_lose_half',
-       'under_win', 'under_win_half', 
-       'event_count_hh', 'draw_hh', 'home_lose',
-       'home_lose_half', 'home_win', 'home_win_half'
+       'draw', 'under_lose', 'under_lose_half', 'under_win', 'under_win_half', 
+       'draw_hh', 'home_lose', 'home_lose_half', 'home_win', 'home_win_half'
        ]]
 
 chunk_size = 10
