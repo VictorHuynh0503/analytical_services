@@ -108,7 +108,7 @@ print(file_agg)
 
 df_stats_agg = pd.read_csv(file_agg, encoding="latin1")
 
-def group_df(df_stats_agg, group_cols = ["country", "league", "score", "minute_interval", "hh_value", "line_value"], agg_col="ou_result"):
+def group_df(df_stats_agg, group_cols = ["country", "league", "score", "hh_value"], agg_col="hh_result"):
         # 1. Count each ou_result inside each group
 # 1. Sum event_count for each ou_result inside each group
     ou_counts = (
@@ -120,42 +120,63 @@ def group_df(df_stats_agg, group_cols = ["country", "league", "score", "minute_i
             fill_value=0
         )
     )
-    df_stats_agg = df_stats_agg.drop(columns=["ou_result", "hh_result"]).drop_duplicates()
+    df_stats_agg = df_stats_agg.drop(columns=["minute_interval", "line_value",  "ou_result", "hh_result", "event_count"]).drop_duplicates()
     df_stats_agg = df_stats_agg.merge(
         ou_counts,
-        on=["country", "league", "score", "minute_interval", "hh_value", "line_value"],
+        on=["country", "league", "score", "hh_value"],
         how="left"
     )
     df_stats_agg = df_stats_agg.fillna(0)
     return df_stats_agg
 
-df_grouped_ou = group_df(df_stats_agg)
-df_grouped_hh = group_df(df_stats_agg, agg_col="hh_result")
+def group_df_ou(df_stats_agg, group_cols = ["country", "league", "score", "line_value"], agg_col="ou_result"):
+        # 1. Count each ou_result inside each group
+# 1. Sum event_count for each ou_result inside each group
+    ou_counts = (
+        df_stats_agg.pivot_table(
+            index=group_cols,
+            columns=agg_col,
+            values="event_count",   # <-- use event_count instead of counting rows
+            aggfunc="sum",
+            fill_value=0
+        )
+    )
+    df_stats_agg = df_stats_agg.drop(columns=["minute_interval", "hh_value",  "ou_result", "hh_result", "event_count"]).drop_duplicates()
+    df_stats_agg = df_stats_agg.merge(
+        ou_counts,
+        on=["country", "league", "score", "line_value"],
+        how="left"
+    )
+    df_stats_agg = df_stats_agg.fillna(0)
+    return df_stats_agg
+
+df_grouped_ou = group_df_ou(df_stats_agg)
+df_grouped_hh = group_df(df_stats_agg)
 
 
 # fill NA counts with 0
 #### Merge and filter for alerts
-df_join_hc = df_parsed.merge(
-    df_stats_hc,
-    how="left",
-    left_on=["l", "n", "score", "hh_value"],
-    right_on=["country", "league", "from_score", "pre_handicap"]
-    #suffixes=('', '_hc')
-)
+# df_join_hc = df_parsed.merge(
+#     df_stats_hc,
+#     how="left",
+#     left_on=["l", "n", "score", "hh_value"],
+#     right_on=["country", "league", "from_score", "pre_handicap"]
+#     #suffixes=('', '_hc')
+# )
 
 df_join_ou = df_parsed.merge(
     df_grouped_ou,
     how="left",
-    left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
-    right_on=["country", "league", "score", "line_value", "hh_value", "minute_interval"],
+    left_on=["l", "n", "score", "line_value"],
+    right_on=["country", "league", "score", "line_value"],
     suffixes=('', '_ou')
 )
 
 df_join_ou = df_join_ou.merge(
     df_grouped_hh,
     how="left",
-    left_on=["l", "n", "score", "line_value", "hh_value", "minute_interval"],
-    right_on=["country", "league", "score", "line_value", "hh_value", "minute_interval"],
+    left_on=["l", "n", "score", "hh_value"],
+    right_on=["country", "league", "score", "hh_value"],
     suffixes=('', '_hh')
 )
 
@@ -409,9 +430,18 @@ conditions = [
         "BET Team With Higher Rate First Odd"
     ),
     (    
-        (df_alerts_ou['minute'] >= 20) & 
-        (df_alerts_ou['minute'] <=85),  
-        "ALERT - AFTER 20 MINS"
+        (df_alerts_ou['minute'] >= 5) & 
+        (df_alerts_ou['minute'] <=85) &
+        (
+            (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
+        ),
+        "ALERT - AFTER 10 MINS - CURRENT NOT DRAW"
+    ),
+    (    
+        (df_alerts_ou['minute'] >=60) & 
+        (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou['score'].isin(['1-1', '0-0', '2-2', '3-3', '4-4', '5-5'])),         
+        "ALERT - AFTER 60 MINS - CURRENT DRAW"
     )
     
     # ( #### Goals > 1.5 first half
