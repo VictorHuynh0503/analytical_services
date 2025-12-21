@@ -435,13 +435,33 @@ conditions = [
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
-        "ALERT - AFTER 10 MINS - CURRENT NOT DRAW"
+        "ALERT - AFTER 10 MINS - NOT DRAW"
     ),
     (    
         (df_alerts_ou['minute'] >=60) & 
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['score'].isin(['1-1', '0-0', '2-2', '3-3', '4-4', '5-5'])),         
-        "ALERT - AFTER 60 MINS - CURRENT DRAW"
+        "ALERT - AFTER 60 MINS - DRAW"
+    ),
+    (    
+        (df_alerts_ou['minute'] >= 5) & 
+        (df_alerts_ou['minute'] <=85) &
+        (
+            (df_alerts_ou['score'].isin(['0-2', '1-3', '2-4'])) & df_alerts_ou['hh_value'].isin([0.25, 0, -0.25]) |  
+
+            (df_alerts_ou['score'].isin(['2-0', '3-1', '4-2'])) & df_alerts_ou['hh_value'].isin([0.25, 0, -0.25])
+        ),
+        "ALERT - AFTER 10 MINS - TWO GOAL DIFFERENCE"
+    ),
+    (    
+        (df_alerts_ou['minute'] >= 5) & 
+        (df_alerts_ou['minute'] <=85) &
+        (
+            (df_alerts_ou['score'].isin(['0-3', '1-4', '2-5'])) & df_alerts_ou['hh_value'].isin([-0.25]) |  
+
+            (df_alerts_ou['score'].isin(['3-0', '4-1', '5-2'])) & df_alerts_ou['hh_value'].isin([0.25])
+        ),
+        "ALERT - AFTER 10 MINS - THREE GOAL DIFFERENCE"
     )
     
     # ( #### Goals > 1.5 first half
