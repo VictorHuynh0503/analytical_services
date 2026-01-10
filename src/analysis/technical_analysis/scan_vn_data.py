@@ -151,4 +151,4 @@ for i in top_10_each_industry:
     fig = analyzer.plot_analysis(name=i)
     plt.show()
 
-  
+   

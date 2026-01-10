@@ -432,17 +432,50 @@ conditions = [
     (    
         (df_alerts_ou['minute'] >= 5) & 
         (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou['wins_home'] >= 2) & 
+        (df_alerts_ou['wins_away'] < 2) & 
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
-        "ALERT - AFTER 10 MINS - NOT DRAW"
+        "ALERT - HOME BET"
     ),
+    
+    (    
+        (df_alerts_ou['minute'] >= 5) & 
+        (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou['wins_home'] < 2) & 
+        (df_alerts_ou['wins_away'] >= 2) & 
+        (
+            (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
+        ),
+        "ALERT - AWAY BET"
+    ),
+
     (    
         (df_alerts_ou['minute'] >=60) & 
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['score'].isin(['1-1', '0-0', '2-2', '3-3', '4-4', '5-5'])),         
         "ALERT - AFTER 60 MINS - DRAW"
     ),
+    
+    (    
+        (df_alerts_ou['minute'] >=10) & 
+        (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou['wins_home'] >= 3) & 
+        (df_alerts_ou['wins_away'] < 2) & 
+        (df_alerts_ou['score'].isin(['1-1', '0-0', '2-2', '3-3', '4-4', '5-5'])),         
+        "ALERT - AFTER 10 MINS - DRAW - HOME"
+    ),
+    
+    (    
+        (df_alerts_ou['minute'] >=10) & 
+        (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou['wins_home'] <2) & 
+        (df_alerts_ou['wins_away'] >= 3) & 
+        (df_alerts_ou['score'].isin(['1-1', '0-0', '2-2', '3-3', '4-4', '5-5'])),         
+        "ALERT - AFTER 10 MINS - DRAW - AWAY"
+    ),
+
     (    
         (df_alerts_ou['minute'] >= 5) & 
         (df_alerts_ou['minute'] <=85) &
