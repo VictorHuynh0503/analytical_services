@@ -448,7 +448,7 @@ conditions = [
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['wins_home'] >= 2) & 
         (df_alerts_ou['wins_away'] < 2) & 
-        (df_alerts_ou["second_half_goals"].str.len() > 0),
+        (df_alerts_ou["second_half_goals"].str.len() > 0) &
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
@@ -460,7 +460,7 @@ conditions = [
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['wins_home'] < 2) & 
         (df_alerts_ou['wins_away'] >= 2) & 
-        (df_alerts_ou["second_half_goals"].str.len() > 0),
+        (df_alerts_ou["second_half_goals"].str.len() > 0) &
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
