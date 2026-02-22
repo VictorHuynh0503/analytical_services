@@ -36,6 +36,7 @@ from src.analysis.stats_sport_bet.stats_bet_odd import extract_goal_events_with_
 from src.analysis.stats_sport_bet.stats_score_transition import parse_match_name
 from src.analysis.stats_sport_bet.stats_first_bet_odds import get_first_bet_odds
 from src.analysis.stats_sport_bet.stats_score_records import build_score_timeline_df
+from src.analysis.stats_sport_bet.stats_score_records import build_second_half_goal_df
 
 # resp = requests.post("http://165.232.188.235:8000/query/log",
 #                     json={"sql": f"{sql}"})
@@ -273,9 +274,11 @@ df_first_bet_parsed = parse_odds_columns(df_first_bet)
 df_to_stats["minute"] = df_to_stats["current_time"].apply(parse_minute)
 
 df_score_records = build_score_timeline_df(df_to_stats)
+df_score_records_h2 = build_second_half_goal_df(df_to_stats)
 
 df_alerts_ou = df_alerts_ou.merge(df_first_bet_parsed[['id', 'hh_value', 'rate_hh', 'rate_ah', 'line_value', 'rate_over', 'rate_under']], on='id', how='inner', suffixes=('', '_first_odd'))
 df_alerts_ou = df_alerts_ou.merge(df_score_records[['id', 'score_timeline']], on='id', how='left', suffixes=('', '_score_record'))
+df_alerts_ou = df_alerts_ou.merge(df_score_records_h2[['id', 'second_half_goals']], on='id', how='left', suffixes=('', '_score_record_h2'))
 
 
 # Define conditions with labels
@@ -425,26 +428,27 @@ conditions = [
         (df_alerts_ou['minute'] >= 50),  
         "BET Team Find Draw Match"
     ), 
-    (
-        (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
-        (
-            (df_alerts_ou['score'].isin(['0-0', '0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])
-            & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25, -0.5, -1, -1.25, -1.5]) 
-            & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float) * 1.05
-            ) |
-            (df_alerts_ou['score'].isin(['0-0', '1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])          
-            & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25, 0.5, 1, 1.25, 1.5])
-            & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float) * 0.95
-            ) 
-        )   &
-        (df_alerts_ou['minute'] >= 50),  
-        "BET Team With Higher Rate First Odd"
-    ),
+    # (
+    #     (df_alerts_ou['line_value_first_odd'].isin([2, 2.25, 2.5, 2.75, 3, 3.25, 3.5])) &
+    #     (
+    #         (df_alerts_ou['score'].isin(['0-0', '0-1', '1-1', '0-2', '1-2', '2-3', '2-2', '1-3', '1-4', '3-3', '0-3'])
+    #         & df_alerts_ou['hh_value_first_odd'].isin([0.25, 0, -0.25, -0.5, -1, -1.25, -1.5]) 
+    #         & df_alerts_ou['rate_hh_first_odd'].astype(float) > df_alerts_ou['rate_ah_first_odd'].astype(float) * 1.05
+    #         ) |
+    #         (df_alerts_ou['score'].isin(['0-0', '1-0', '1-1', '2-0', '2-1', '3-2', '2-2', '3-1', '4-1', '3-3', '3-0'])          
+    #         & df_alerts_ou['hh_value_first_odd'].isin([-0.25, 0, 0.25, 0.5, 1, 1.25, 1.5])
+    #         & df_alerts_ou['rate_hh_first_odd'].astype(float) < df_alerts_ou['rate_ah_first_odd'].astype(float) * 0.95
+    #         ) 
+    #     )   &
+    #     (df_alerts_ou['minute'] >= 50),  
+    #     "BET Team With Higher Rate First Odd"
+    # ),
     (    
         (df_alerts_ou['minute'] >= 5) & 
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['wins_home'] >= 2) & 
         (df_alerts_ou['wins_away'] < 2) & 
+        (df_alerts_ou["second_half_goals"].str.len() > 0),
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
@@ -456,6 +460,7 @@ conditions = [
         (df_alerts_ou['minute'] <=85) &
         (df_alerts_ou['wins_home'] < 2) & 
         (df_alerts_ou['wins_away'] >= 2) & 
+        (df_alerts_ou["second_half_goals"].str.len() > 0),
         (
             (df_alerts_ou['score'].isin(['0-1', '0-2', '1-2', '2-3', '1-3', '1-4', '0-3', '0-4', '2-4', '0-5']))  |  (df_alerts_ou['score'].isin(['1-0', '2-0', '2-1', '3-2', '3-1', '4-1', '3-0','4-0', '4-2', '5-0']))          
         ),
@@ -506,6 +511,12 @@ conditions = [
             (df_alerts_ou['score'].isin(['3-0', '4-1', '5-2'])) & df_alerts_ou['hh_value'].isin([0.25])
         ),
         "ALERT - AFTER 10 MINS - THREE GOAL DIFFERENCE"
+    ),
+    (    
+        (df_alerts_ou['minute'] >= 5) & 
+        (df_alerts_ou['minute'] <=85) &
+        (df_alerts_ou["second_half_goals"].str.len() > 0),
+        "ALERT - GOALS H2"
     )
     
     # ( #### Goals > 1.5 first half
@@ -628,7 +639,7 @@ df_tele = df_alerts_ou[['id', 'cid', 'l', 'n', 'match_name', 'score', 'match_tim
        'wins_away', 'draws_away','goals_first_half_away', 'goals_second_half_away',
        'comment', 
        'hh_value_first_odd', 'rate_hh_first_odd', 'rate_ah_first_odd',
-       'line_value_first_odd', 'score_timeline'
+       'line_value_first_odd', 'score_timeline', 'second_half_goals'
        ]]
 
 chunk_size = 10

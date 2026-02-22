@@ -32,6 +32,43 @@ def build_score_timeline_df(df, id_col="id", score_col="score", minute_col="minu
 
     return pd.DataFrame(records)
 
+def build_second_half_goal_df(df, id_col="id", score_col="score", minute_col="minute"):
+    """
+    Detects score changes after minute 45 (second half goals).
+
+    Returns a DataFrame:
+        id | second_half_goals
+        -----------------------------------------
+        1  | ["0-1 | 50", "0-2 | 65"]
+        2  | ["1-1 | 70"]
+    """
+
+    records = []
+
+    for match_id, group in df.groupby(id_col):
+        group = group.sort_values(by=minute_col)
+
+        last_score = None
+        second_half_events = []
+
+        for _, row in group.iterrows():
+            score = row[score_col]
+            minute = row[minute_col]
+
+            # Detect score change
+            if score != last_score:
+                # Only consider second half
+                if minute > 45 and last_score is not None:
+                    second_half_events.append(f"{score} | {minute}")
+
+                last_score = score
+
+        records.append({
+            id_col: match_id,
+            "second_half_goals": second_half_events
+        })
+
+    return pd.DataFrame(records)
 
 if __name__ == "__main__":    
     import requests
